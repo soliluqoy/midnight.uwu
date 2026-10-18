@@ -1,0 +1,65 @@
+# ---- Dart / Flutter ----
+.dart_tool/
+.packages
+.pub-cache/
+.pub/
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+*.iml
+.flutter-plugins-dependencies
+
+# ---- Generated code (regenerate with `melos run gen`) ----
+**/*.g.dart
+**/*.freezed.dart
+**/*.mocks.dart
+**/generated_plugin_registrant.dart
+apps/vault/lib/l10n/generated_*.dart
+
+# ---- IDE ----
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+*.swp
+.DS_Store
+Thumbs.db
+
+# ---- Android ----
+apps/vault/android/.gradle/
+apps/vault/android/local.properties
+apps/vault/android/key.properties
+apps/vault/android/app/*.jks
+apps/vault/android/app/*.keystore
+apps/vault/android/app/google-services.json
+apps/vault/android/.cxx/
+
+# ---- Windows ----
+apps/vault/windows/flutter/ephemeral/
+apps/vault/windows/flutter/generated_*.txt
+*.msix
+*.appx
+*.msixbundle
+
+# ---- Signing material: NEVER COMMIT (Risk: licensing/telemetry-free guarantee) ----
+*.p12
+*.pfx
+*.jks
+*.keystore
+secrets/
+*.env
+!*.env.example
+
+# ---- Interop harness (Go) ----
+tools/interop_harness/bin/
+tools/interop_harness/vendor/
+tools/interop_harness/results/
+
+# ---- Spikes: throwaway code, results live in docs/spikes ----
+spikes/**/build/
+spikes/**/out/
+
+# ---- Tooling / OS ----
+.idea/libraries/
+*.log
+Thumbs.db

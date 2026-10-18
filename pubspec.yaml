@@ -1,0 +1,34 @@
+# Root workspace package.
+#
+# This package is NEVER published and contains NO runtime code. It exists only to
+# pin the dev tooling the monorepo uses, so every package and CI run gets the same
+# lints. Application dependencies live in apps/vault/pubspec.yaml; library
+# dependencies live in each packages/*/pubspec.yaml.
+#
+# Plan §10.7: no hosted service, no API key, no account, and nothing resembling a
+# backend. This file is a deliberate short list. In particular there is NO Sentry,
+# NO Firebase, NO analytics package - the product guarantees zero telemetry
+# (see docs/adr/0007-no-telemetry.md).
+
+name: _vault_workspace
+description: Dev tooling for the Vault monorepo. Not published.
+publish_to: none
+version: 0.0.0
+
+environment:
+  sdk: '>=3.9.0 <4.0.0'
+
+dev_dependencies:
+  # Lint set referenced by analysis_options.yaml at the repo root.
+  very_good_analysis: 11.0.0
+
+  # Code generation, used by `melos run gen`:
+  #   - drift        -> packages/vault_media_index, packages/vault_directory
+  #   - json_serializable -> packages/vault_protocol message models
+  #   - riverpod_generator -> apps/vault/lib/di/providers.dart
+  build_runner: ^2.4.13
+
+  # §8 quality gates: golden wire vectors and protocol fuzzing.
+  test: ^1.25.0
+  flutter_test:
+    sdk: flutter

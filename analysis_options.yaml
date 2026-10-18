@@ -1,0 +1,57 @@
+# Root analysis configuration. Every package includes this file.
+#
+# Plan §8 quality gates:
+#   - `dart analyze --fatal-infos`, strict analysis options
+#   - 100% coverage on vault_protocol, vault_identity, UplinkGovernor, chunk protocol
+#
+# The lint set below is deliberately boring and conservative (plan §10.6:
+# "Prefer boring, well-understood, heavily-used libraries").
+
+include: package:very_good_analysis/analysis_options.11.0.0.yaml
+
+analyzer:
+  language:
+    strict-casts: true
+    strict-inference: true
+    strict-raw-types: true
+
+  errors:
+    unused_import: error
+    unused_local_variable: error
+    dead_code: error
+    # §10.7 forbids a hosted service, API key, account, or `TODO(server)`.
+    # Plain engineering TODOs are allowed but must be visible in analysis.
+    todo: warning
+
+  exclude:
+    - '**/*.g.dart'
+    - '**/*.freezed.dart'
+    - '**/*.mocks.dart'
+    - '**/generated_plugin_registrant.dart'
+    - 'tools/interop_harness/**'
+    - 'spikes/**'
+
+# ---- Plan-specific invariants -------------------------------------------
+# These encode hard constraints from the build plan so a violation shows up in
+# analysis rather than in a code review. They are comments on intent, backed by
+# real enforcement in the package contracts:
+#
+#   §1.2  media bytes never transit a relay
+#         -> enforced by packages/vault_signaling/lib/src/relay_byte_budget.dart
+#   §2.2  no bundled TURN, STUN only
+#         -> enforced by packages/vault_net/lib/src/ice_config.dart
+#   §4    vault_protocol and vault_identity have zero Flutter imports
+#         -> enforced by the layering check in .github/workflows/ci.yml
+#   §4    flutter_webrtc is imported by exactly one file
+#         -> packages/vault_net/lib/src/webrtc_adapter.dart
+#   §1.7  no telemetry, no crash reporting, no remote config
+#         -> no such dependency may appear in any pubspec.yaml
+
+linter:
+  rules:
+    # Prefer const constructors and literals; the app is rebuilt constantly.
+    - prefer_const_constructors
+    - prefer_final_locals
+    # Never silently drop a future or an error.
+    - unawaited_futures
+    - avoid_unused_constructor_parameters
