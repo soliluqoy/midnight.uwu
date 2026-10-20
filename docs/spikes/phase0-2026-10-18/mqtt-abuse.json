@@ -1,0 +1,38 @@
+{
+  "scenario": "abuse",
+  "checkedAt": "2026-10-18T14:03:56.982804Z",
+  "client": "mqtt5_client 5.1.0, TLS, MQTT 5, QoS 1",
+  "broker": "tools/mqtt_testbroker (mochi-mqtt v2.7.9, local)",
+  "legitBeforeAcked": true,
+  "legitAfterAbuseAcked": true,
+  "capturedFramesByEve": 412,
+  "deliveredBeforeAttack": 1,
+  "deliveredAfterAttack": 3,
+  "validlySignedUnknownSenderDelivered": 1,
+  "bobStats": {
+    "connects": 1,
+    "connectFailures": 0,
+    "disconnects": 0,
+    "publishes": 5,
+    "publishSuppressed": 0,
+    "inboundFrames": 412,
+    "delivered": 3,
+    "duplicatesReacked": 3,
+    "droppedOversize": 1,
+    "droppedRateLimited": 307,
+    "rejected": {
+      "size": 2,
+      "unknown version": 94,
+      "decryption failed": 1,
+      "expired": 1
+    }
+  },
+  "bobReceivedPayloads": [
+    "legit",
+    "from eve",
+    "after abuse"
+  ],
+  "passed": true,
+  "note": "A validly signed message from an unknown sender is decoded and delivered to the session layer; authorization (known/approved identity) is a Phase 1 policy check above this transport. The flood consumes the rate limiter before honest frames in the same second.",
+  "uncaughtClientErrors": []
+}

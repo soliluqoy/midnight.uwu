@@ -1,0 +1,10 @@
+﻿{
+    "checkedAt":  "2026-10-18T19:08:13.6373521+08:00",
+    "scope":  "AVD runtime only; not physical hardware or Vault",
+    "avd":  "vault36",
+    "serial":  "emulator-5554",
+    "bootCompleted":  true,
+    "androidRelease":  "16",
+    "sdk":  "36",
+    "abi":  "x86_64"
+}

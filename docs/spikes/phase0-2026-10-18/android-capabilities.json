@@ -1,0 +1,197 @@
+﻿{
+    "manufacturer":  "Xiaomi",
+    "model":  "23078PND5G",
+    "androidRelease":  "16",
+    "sdk":  36,
+    "h264Codecs":  [
+                       {
+                           "name":  "c2.mtk.avc.decoder",
+                           "encoder":  false,
+                           "hardwareAccelerated":  true,
+                           "softwareOnly":  false,
+                           "supports720p30":  true,
+                           "colorFormats":  [
+                                                2130708361,
+                                                2135033992,
+                                                19,
+                                                21,
+                                                20,
+                                                39,
+                                                54
+                                            ]
+                       },
+                       {
+                           "name":  "OMX.MTK.VIDEO.DECODER.AVC",
+                           "encoder":  false,
+                           "hardwareAccelerated":  true,
+                           "softwareOnly":  false,
+                           "supports720p30":  true,
+                           "colorFormats":  [
+                                                2130708361,
+                                                2135033992,
+                                                19,
+                                                21,
+                                                20,
+                                                39,
+                                                54
+                                            ]
+                       },
+                       {
+                           "name":  "c2.mtk.avc.decoder.lowlatency",
+                           "encoder":  false,
+                           "hardwareAccelerated":  true,
+                           "softwareOnly":  false,
+                           "supports720p30":  true,
+                           "colorFormats":  [
+                                                2130708361,
+                                                2135033992,
+                                                19,
+                                                21,
+                                                20,
+                                                39,
+                                                54
+                                            ]
+                       },
+                       {
+                           "name":  "c2.mtk.avc.decoder.secure",
+                           "encoder":  false,
+                           "hardwareAccelerated":  true,
+                           "softwareOnly":  false,
+                           "supports720p30":  true,
+                           "colorFormats":  [
+                                                2130708361,
+                                                2135033992,
+                                                19,
+                                                21,
+                                                20,
+                                                39,
+                                                54
+                                            ]
+                       },
+                       {
+                           "name":  "OMX.MTK.VIDEO.DECODER.AVC.secure",
+                           "encoder":  false,
+                           "hardwareAccelerated":  true,
+                           "softwareOnly":  false,
+                           "supports720p30":  true,
+                           "colorFormats":  [
+                                                2130708361,
+                                                2135033992,
+                                                19,
+                                                21,
+                                                20,
+                                                39,
+                                                54
+                                            ]
+                       },
+                       {
+                           "name":  "c2.mtk.avc.encoder",
+                           "encoder":  true,
+                           "hardwareAccelerated":  true,
+                           "softwareOnly":  false,
+                           "supports720p30":  true,
+                           "colorFormats":  [
+                                                2130708361,
+                                                2135033992,
+                                                19,
+                                                21,
+                                                20,
+                                                39,
+                                                54
+                                            ]
+                       },
+                       {
+                           "name":  "OMX.MTK.VIDEO.ENCODER.AVC",
+                           "encoder":  true,
+                           "hardwareAccelerated":  true,
+                           "softwareOnly":  false,
+                           "supports720p30":  true,
+                           "colorFormats":  [
+                                                2130708361,
+                                                2135033992,
+                                                19,
+                                                21,
+                                                20,
+                                                39,
+                                                54
+                                            ]
+                       },
+                       {
+                           "name":  "c2.mtk.avc.encoder.secure",
+                           "encoder":  true,
+                           "hardwareAccelerated":  true,
+                           "softwareOnly":  false,
+                           "supports720p30":  true,
+                           "colorFormats":  [
+                                                2130708361,
+                                                2135033992,
+                                                19,
+                                                21,
+                                                20,
+                                                39,
+                                                54
+                                            ]
+                       },
+                       {
+                           "name":  "c2.android.avc.decoder",
+                           "encoder":  false,
+                           "hardwareAccelerated":  false,
+                           "softwareOnly":  true,
+                           "supports720p30":  true,
+                           "colorFormats":  [
+                                                2135033992,
+                                                19,
+                                                21,
+                                                20,
+                                                39,
+                                                2130708361
+                                            ]
+                       },
+                       {
+                           "name":  "OMX.google.h264.decoder",
+                           "encoder":  false,
+                           "hardwareAccelerated":  false,
+                           "softwareOnly":  true,
+                           "supports720p30":  true,
+                           "colorFormats":  [
+                                                2135033992,
+                                                19,
+                                                21,
+                                                20,
+                                                39,
+                                                2130708361
+                                            ]
+                       },
+                       {
+                           "name":  "c2.android.avc.encoder",
+                           "encoder":  true,
+                           "hardwareAccelerated":  false,
+                           "softwareOnly":  true,
+                           "supports720p30":  false,
+                           "colorFormats":  [
+                                                2135033992,
+                                                19,
+                                                21,
+                                                20,
+                                                39,
+                                                2130708361
+                                            ]
+                       },
+                       {
+                           "name":  "OMX.google.h264.encoder",
+                           "encoder":  true,
+                           "hardwareAccelerated":  false,
+                           "softwareOnly":  true,
+                           "supports720p30":  false,
+                           "colorFormats":  [
+                                                2135033992,
+                                                19,
+                                                21,
+                                                20,
+                                                39,
+                                                2130708361
+                                            ]
+                       }
+                   ],
+    "networkStatePermissionGranted":  true
+}

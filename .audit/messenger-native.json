@@ -1,0 +1,18 @@
+{
+  "networkFixture": "same-process native host-only meshes; runtime loads/closes real stores",
+  "aliceRoute": {
+    "local": "host",
+    "remote": "host"
+  },
+  "bobRoute": {
+    "local": "host",
+    "remote": "host"
+  },
+  "uiComposerDelivered": true,
+  "bidirectionalNativeMessages": true,
+  "chatSurvivesMediaStop": true,
+  "draftSurvivesNavigation": true,
+  "recipientHistoryAfterRestart": 3,
+  "flutterErrors": [],
+  "passed": true
+}

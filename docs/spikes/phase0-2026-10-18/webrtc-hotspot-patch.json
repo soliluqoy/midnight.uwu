@@ -1,0 +1,8 @@
+﻿{
+    "upstreamVersion":  "1.6.2+hotfix.4",
+    "hostedArchiveSha256":  "ebf5ceef2897caae425ed65a38b2961c29d9d9a626159418ed460e1a65038c00",
+    "upstreamJavaSha256":  "3BF14B9CFB83192BB554E6BA6A560B7ED7840DD686FE7446A898ABA955EB1115",
+    "patchedJavaSha256":  "C04EB1520D1927F0E496C5E6EA50171C547C0785059407E4F66643C39B9D1B31",
+    "option":  "disableNetworkMonitor; default false; Android factory initialization only",
+    "scope":  "Experimental hotspot probe; connectivity-change recovery remains unverified"
+}

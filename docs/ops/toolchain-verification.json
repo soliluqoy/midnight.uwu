@@ -1,0 +1,139 @@
+﻿{
+    "checkedAt":  "2026-10-18T19:55:51.7690751+08:00",
+    "hostName":  "DESKTOP-SDAVB2H",
+    "scope":  "Installed tools only; native smoke builds and Phase 0 gates are separate.",
+    "failures":  0,
+    "warnings":  0,
+    "checks":  [
+                   {
+                       "name":  "Git",
+                       "status":  "PASS",
+                       "detail":  "git version 2.55.0.windows.5"
+                   },
+                   {
+                       "name":  "7-Zip",
+                       "status":  "PASS",
+                       "detail":  "C:\\Program Files\\7-Zip\\7z.exe"
+                   },
+                   {
+                       "name":  "Flutter and Dart pins",
+                       "status":  "PASS",
+                       "detail":  "Flutter 3.47.7; Dart 3.13.5"
+                   },
+                   {
+                       "name":  "flutter doctor required platforms",
+                       "status":  "PASS",
+                       "detail":  "Android and Windows checks healthy."
+                   },
+                   {
+                       "name":  "MSVC C++ workload",
+                       "status":  "PASS",
+                       "detail":  "C:\\Program\\VC\\Tools\\MSVC\\14.44.35207\\bin\\Hostx64\\x64\\cl.exe"
+                   },
+                   {
+                       "name":  "MSBuild",
+                       "status":  "PASS",
+                       "detail":  "17.14.60.43110"
+                   },
+                   {
+                       "name":  "Windows SDK headers and libraries",
+                       "status":  "PASS",
+                       "detail":  "10.0.26100.0"
+                   },
+                   {
+                       "name":  "CMake",
+                       "status":  "PASS",
+                       "detail":  "cmake version 4.4.4\n\nCMake suite maintained and supported by Kitware (kitware.com/cmake)."
+                   },
+                   {
+                       "name":  "Ninja",
+                       "status":  "PASS",
+                       "detail":  "1.13.2"
+                   },
+                   {
+                       "name":  "JDK 17 executable",
+                       "status":  "PASS",
+                       "detail":  "openjdk version \"17.0.20.1\" 2026-08-18\nOpenJDK Runtime Environment Temurin-17.0.20.1+1 (build 17.0.20.1+1)\nOpenJDK 64-Bit Server VM Temurin-17.0.20.1+1 (build 17.0.20.1+1, mixed mode, sharing)"
+                   },
+                   {
+                       "name":  "Android SDK manager",
+                       "status":  "PASS",
+                       "detail":  "WARNING: The SDK Manager CLI tool (sdkmanager) is deprecated. Android CLI will be used instead.\nThe \u0027android\u0027 binary can also be found in the cmdline-tools directory, and \u0027android sdk\u0027 is the replacement for \u0027sdkmanager\u0027.\nTo learn more about the Android CLI and how to use it, see the documentation (https://d.android.com/tools/agents/android-cli)\nSystem.Management.Automation.RemoteException\n1.0.16625370 (Android CLI)"
+                   },
+                   {
+                       "name":  "ADB",
+                       "status":  "PASS",
+                       "detail":  "Android Debug Bridge version 1.0.41\nVersion 37.0.1-15733141\nInstalled as C:\\dev\\android-sdk\\platform-tools\\adb.exe\nRunning on Windows 10.0.19045"
+                   },
+                   {
+                       "name":  "Android platform 36",
+                       "status":  "PASS",
+                       "detail":  "C:\\dev\\android-sdk\\platforms\\android-36\\android.jar"
+                   },
+                   {
+                       "name":  "Pinned native plugin Android prerequisites",
+                       "status":  "PASS",
+                       "detail":  "Platform 35 and Android SDK CMake 3.22.1 present."
+                   },
+                   {
+                       "name":  "Build-tools 36.0.0 and 36.1.0",
+                       "status":  "PASS",
+                       "detail":  "Both default-runner and selected newer build-tools have the required binaries."
+                   },
+                   {
+                       "name":  "NDK 29.0.14206865",
+                       "status":  "PASS",
+                       "detail":  "C:\\dev\\android-sdk\\ndk\\29.0.14206865\\toolchains\\llvm\\prebuilt\\windows-x86_64\\bin\\clang.exe"
+                   },
+                   {
+                       "name":  "Flutter default NDK 28.2.13676358",
+                       "status":  "PASS",
+                       "detail":  "C:\\dev\\android-sdk\\ndk\\28.2.13676358\\toolchains\\llvm\\prebuilt\\windows-x86_64\\bin\\clang.exe"
+                   },
+                   {
+                       "name":  "Android emulator and hypervisor",
+                       "status":  "PASS",
+                       "detail":  "accel:\n0\nWHPX(10.0.19045) is installed and usable.\naccel"
+                   },
+                   {
+                       "name":  "Android 36 system image",
+                       "status":  "PASS",
+                       "detail":  "C:\\dev\\android-sdk\\system-images\\android-36\\google_apis\\x86_64\\system.img"
+                   },
+                   {
+                       "name":  "vault36 AVD",
+                       "status":  "PASS",
+                       "detail":  "vault36"
+                   },
+                   {
+                       "name":  "Physical Android device",
+                       "status":  "PASS",
+                       "detail":  "6TOBCUMVVCWSPJLR       device product:corot_global model:23078PND5G device:corot transport_id:5"
+                   },
+                   {
+                       "name":  "Go",
+                       "status":  "PASS",
+                       "detail":  "go version go1.27.0 windows/amd64"
+                   },
+                   {
+                       "name":  "Synthetic media fixture tools",
+                       "status":  "PASS",
+                       "detail":  "ffmpeg version 9.0.1-essentials_build-www.gyan.dev Copyright (c) 2000-2026 the FFmpeg developers; ffprobe version 9.0.1-essentials_build-www.gyan.dev Copyright (c) 2007-2026 the FFmpeg developers"
+                   },
+                   {
+                       "name":  "clumsy and WinDivert files",
+                       "status":  "PASS",
+                       "detail":  "Executable/driver present; live shaping requires separate elevated validation."
+                   },
+                   {
+                       "name":  "WSL2 and tc netem",
+                       "status":  "PASS",
+                       "detail":  "tc utility, iproute2-6.19.0, libbpf 1.6.3"
+                   },
+                   {
+                       "name":  "Workspace lockfile and Melos",
+                       "status":  "PASS",
+                       "detail":  "8.9.0"
+                   }
+               ]
+}

@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1060 360">
+  <rect width="1060" height="360" fill="#0B1026"/>
+  <g transform="translate(40 24) scale(0.6)">
+    <defs>
+      <linearGradient id="moon" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#FBF3D9"/>
+        <stop offset="1" stop-color="#D8C38A"/>
+      </linearGradient>
+      <mask id="bite">
+        <rect width="512" height="512" fill="#fff"/>
+        <circle cx="318" cy="204" r="128" fill="#000"/>
+      </mask>
+    </defs>
+    <circle cx="244" cy="268" r="150" fill="url(#moon)" mask="url(#bite)"/>
+    <path d="M352 132 Q358 166 392 172 Q358 178 352 212 Q346 178 312 172 Q346 166 352 132 Z" fill="#FBF3D9"/>
+  </g>
+  <text x="360" y="222" font-family="Lora, Georgia, serif" font-size="150" letter-spacing="2" fill="#F3EBD3">midnight</text>
+</svg>

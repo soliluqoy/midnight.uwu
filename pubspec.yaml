@@ -8,7 +8,7 @@
 # Plan §10.7: no hosted service, no API key, no account, and nothing resembling a
 # backend. This file is a deliberate short list. In particular there is NO Sentry,
 # NO Firebase, NO analytics package - the product guarantees zero telemetry
-# (see docs/adr/0007-no-telemetry.md).
+# (see docs/adr/0001-prebuild-baseline.md).
 
 name: _vault_workspace
 description: Dev tooling for the Vault monorepo. Not published.
@@ -16,19 +16,43 @@ publish_to: none
 version: 0.0.0
 
 environment:
-  sdk: '>=3.9.0 <4.0.0'
+  sdk: '>=3.13.0 <4.0.0'
+
+# Native application and explicitly registered service packages.
+# Each member uses the workspace lockfile and declares resolution: workspace.
+workspace:
+  - apps/vault
+  - packages/vault_ui
+  - packages/vault_identity
+  - packages/vault_protocol
+  - packages/vault_signaling
+  - packages/vault_net
+  - packages/vault_media_index
+  - packages/vault_directory
+  - packages/vault_delivery
+  - packages/vault_player
 
 dev_dependencies:
+  # Local orchestration; Melos 7+ stores configuration in this pubspec.
+  melos: 8.9.0
   # Lint set referenced by analysis_options.yaml at the repo root.
   very_good_analysis: 11.0.0
 
-  # Code generation, used by `melos run gen`:
-  #   - drift        -> packages/vault_media_index, packages/vault_directory
-  #   - json_serializable -> packages/vault_protocol message models
-  #   - riverpod_generator -> apps/vault/lib/di/providers.dart
-  build_runner: ^2.4.13
-
-  # §8 quality gates: golden wire vectors and protocol fuzzing.
-  test: ^1.25.0
-  flutter_test:
-    sdk: flutter
+melos:
+  useRootAsPackage: true
+  scripts:
+    doctor:
+      run: powershell -NoProfile -ExecutionPolicy Bypass -File tools/setup/verify-toolchain.ps1
+      description: Verify installed tools; Phase 0 results are separate gates.
+    analyze:
+      run: dart analyze --fatal-infos .
+      description: Analyze the production workspace, excluding separate spikes.
+    format:
+      run: dart format --output=none --set-exit-if-changed .
+      description: Check Dart formatting without changing files.
+    test:
+      run: powershell -NoProfile -ExecutionPolicy Bypass -File tools/verify-core.ps1 -SkipAnalyze -SkipFormat
+      description: Run behavioral tests for every implemented core package.
+    smoke:
+      run: powershell -NoProfile -ExecutionPolicy Bypass -File tools/setup/test-builds.ps1
+      description: Build an isolated empty Flutter app on Windows and Android.

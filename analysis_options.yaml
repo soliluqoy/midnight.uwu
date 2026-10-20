@@ -32,16 +32,16 @@ analyzer:
     - 'spikes/**'
 
 # ---- Plan-specific invariants -------------------------------------------
-# These encode hard constraints from the build plan so a violation shows up in
-# analysis rather than in a code review. They are comments on intent, backed by
-# real enforcement in the package contracts:
+# These are planned invariants, not active analyzer enforcement. The referenced
+# implementation and CI files do not exist yet. Add and test enforcement when
+# those targets are created; a clean scaffold analysis does not prove them.
 #
 #   §1.2  media bytes never transit a relay
-#         -> enforced by packages/vault_signaling/lib/src/relay_byte_budget.dart
-#   §2.2  no bundled TURN, STUN only
-#         -> enforced by packages/vault_net/lib/src/ice_config.dart
+#         -> planned typed allowlist and rate/byte budgets in vault_signaling
+#   §2.2  no TURN in v1, including user-supplied TURN; STUN only
+#         -> planned candidate and selected-pair checks in vault_net
 #   §4    vault_protocol and vault_identity have zero Flutter imports
-#         -> enforced by the layering check in .github/workflows/ci.yml
+#         -> planned layering check in .github/workflows/ci.yml
 #   §4    flutter_webrtc is imported by exactly one file
 #         -> packages/vault_net/lib/src/webrtc_adapter.dart
 #   §1.7  no telemetry, no crash reporting, no remote config

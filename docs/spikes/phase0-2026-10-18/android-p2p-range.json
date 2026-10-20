@@ -1,0 +1,449 @@
+﻿{
+    "passed":  true,
+    "scope":  "Bounded sparse P2P chunk cache over WebRTC DataChannel; cache cleared before each seek",
+    "samples":  [
+                    {
+                        "fixture":  "front.mp4",
+                        "passed":  true,
+                        "startupMilliseconds":  766,
+                        "seeks":  [
+                                      {
+                                          "targetSeconds":  8,
+                                          "resumeMilliseconds":  636
+                                      },
+                                      {
+                                          "targetSeconds":  2,
+                                          "resumeMilliseconds":  350
+                                      },
+                                      {
+                                          "targetSeconds":  10,
+                                          "resumeMilliseconds":  556
+                                      }
+                                  ],
+                        "width":  1280,
+                        "height":  720,
+                        "durationMilliseconds":  12021,
+                        "audioSampleRate":  48000,
+                        "audioChannelCount":  2,
+                        "audibilityVerified":  false,
+                        "muted":  true,
+                        "errors":  [
+
+                                   ],
+                        "rangeRequests":  [
+                                              {
+                                                  "method":  "GET",
+                                                  "range":  "bytes=0-",
+                                                  "start":  0,
+                                                  "end":  262143,
+                                                  "status":  206
+                                              },
+                                              {
+                                                  "method":  "GET",
+                                                  "range":  "bytes=262144-",
+                                                  "start":  262144,
+                                                  "end":  524287,
+                                                  "status":  206
+                                              },
+                                              {
+                                                  "method":  "GET",
+                                                  "range":  "bytes=14286-",
+                                                  "start":  14286,
+                                                  "end":  276429,
+                                                  "status":  206
+                                              },
+                                              {
+                                                  "method":  "GET",
+                                                  "range":  "bytes=276430-",
+                                                  "start":  276430,
+                                                  "end":  538573,
+                                                  "status":  206
+                                              },
+                                              {
+                                                  "method":  "GET",
+                                                  "range":  "bytes=538574-",
+                                                  "start":  538574,
+                                                  "end":  800717,
+                                                  "status":  206
+                                              },
+                                              {
+                                                  "method":  "GET",
+                                                  "range":  "bytes=800718-",
+                                                  "start":  800718,
+                                                  "end":  1062861,
+                                                  "status":  206
+                                              },
+                                              {
+                                                  "method":  "GET",
+                                                  "range":  "bytes=1062862-",
+                                                  "start":  1062862,
+                                                  "end":  1325005,
+                                                  "status":  206
+                                              },
+                                              {
+                                                  "method":  "GET",
+                                                  "range":  "bytes=1325006-",
+                                                  "start":  1325006,
+                                                  "end":  1587149,
+                                                  "status":  206
+                                              },
+                                              {
+                                                  "method":  "GET",
+                                                  "range":  "bytes=1587150-",
+                                                  "start":  1587150,
+                                                  "end":  1849293,
+                                                  "status":  206
+                                              },
+                                              {
+                                                  "method":  "GET",
+                                                  "range":  "bytes=1849294-",
+                                                  "start":  1849294,
+                                                  "end":  2111437,
+                                                  "status":  206
+                                              },
+                                              {
+                                                  "method":  "GET",
+                                                  "range":  "bytes=2111438-",
+                                                  "start":  2111438,
+                                                  "end":  2373581,
+                                                  "status":  206
+                                              },
+                                              {
+                                                  "method":  "GET",
+                                                  "range":  "bytes=375989-",
+                                                  "start":  375989,
+                                                  "end":  638132,
+                                                  "status":  206
+                                              },
+                                              {
+                                                  "method":  "GET",
+                                                  "range":  "bytes=638133-",
+                                                  "start":  638133,
+                                                  "end":  900276,
+                                                  "status":  206
+                                              },
+                                              {
+                                                  "method":  "GET",
+                                                  "range":  "bytes=900277-",
+                                                  "start":  900277,
+                                                  "end":  1162420,
+                                                  "status":  206
+                                              },
+                                              {
+                                                  "method":  "GET",
+                                                  "range":  "bytes=1162421-",
+                                                  "start":  1162421,
+                                                  "end":  1424564,
+                                                  "status":  206
+                                              },
+                                              {
+                                                  "method":  "GET",
+                                                  "range":  "bytes=1424565-",
+                                                  "start":  1424565,
+                                                  "end":  1686708,
+                                                  "status":  206
+                                              },
+                                              {
+                                                  "method":  "GET",
+                                                  "range":  "bytes=1686709-",
+                                                  "start":  1686709,
+                                                  "end":  1948852,
+                                                  "status":  206
+                                              },
+                                              {
+                                                  "method":  "GET",
+                                                  "range":  "bytes=1948853-",
+                                                  "start":  1948853,
+                                                  "end":  2210996,
+                                                  "status":  206
+                                              },
+                                              {
+                                                  "method":  "GET",
+                                                  "range":  "bytes=2210997-",
+                                                  "start":  2210997,
+                                                  "end":  2377567,
+                                                  "status":  206
+                                              }
+                                          ]
+                    },
+                    {
+                        "fixture":  "tail.mp4",
+                        "passed":  true,
+                        "startupMilliseconds":  1606,
+                        "seeks":  [
+                                      {
+                                          "targetSeconds":  8,
+                                          "resumeMilliseconds":  667
+                                      },
+                                      {
+                                          "targetSeconds":  2,
+                                          "resumeMilliseconds":  346
+                                      },
+                                      {
+                                          "targetSeconds":  10,
+                                          "resumeMilliseconds":  603
+                                      }
+                                  ],
+                        "width":  1280,
+                        "height":  720,
+                        "durationMilliseconds":  12021,
+                        "audioSampleRate":  48000,
+                        "audioChannelCount":  2,
+                        "audibilityVerified":  false,
+                        "muted":  true,
+                        "errors":  [
+
+                                   ],
+                        "rangeRequests":  [
+                                              {
+                                                  "method":  "GET",
+                                                  "range":  "bytes=0-",
+                                                  "start":  0,
+                                                  "end":  262143,
+                                                  "status":  206
+                                              },
+                                              {
+                                                  "method":  "GET",
+                                                  "range":  "bytes=262144-",
+                                                  "start":  262144,
+                                                  "end":  524287,
+                                                  "status":  206
+                                              },
+                                              {
+                                                  "method":  "GET",
+                                                  "range":  "bytes=524288-",
+                                                  "start":  524288,
+                                                  "end":  786431,
+                                                  "status":  206
+                                              },
+                                              {
+                                                  "method":  "GET",
+                                                  "range":  "bytes=786432-",
+                                                  "start":  786432,
+                                                  "end":  1048575,
+                                                  "status":  206
+                                              },
+                                              {
+                                                  "method":  "GET",
+                                                  "range":  "bytes=1048576-",
+                                                  "start":  1048576,
+                                                  "end":  1310719,
+                                                  "status":  206
+                                              },
+                                              {
+                                                  "method":  "GET",
+                                                  "range":  "bytes=1310720-",
+                                                  "start":  1310720,
+                                                  "end":  1572863,
+                                                  "status":  206
+                                              },
+                                              {
+                                                  "method":  "GET",
+                                                  "range":  "bytes=1572864-",
+                                                  "start":  1572864,
+                                                  "end":  1835007,
+                                                  "status":  206
+                                              },
+                                              {
+                                                  "method":  "GET",
+                                                  "range":  "bytes=1835008-",
+                                                  "start":  1835008,
+                                                  "end":  2097151,
+                                                  "status":  206
+                                              },
+                                              {
+                                                  "method":  "GET",
+                                                  "range":  "bytes=2097152-",
+                                                  "start":  2097152,
+                                                  "end":  2359295,
+                                                  "status":  206
+                                              },
+                                              {
+                                                  "method":  "GET",
+                                                  "range":  "bytes=2359296-",
+                                                  "start":  2359296,
+                                                  "end":  2377567,
+                                                  "status":  206
+                                              },
+                                              {
+                                                  "method":  "GET",
+                                                  "range":  "bytes=48-",
+                                                  "start":  48,
+                                                  "end":  262191,
+                                                  "status":  206
+                                              },
+                                              {
+                                                  "method":  "GET",
+                                                  "range":  "bytes=262192-",
+                                                  "start":  262192,
+                                                  "end":  524335,
+                                                  "status":  206
+                                              },
+                                              {
+                                                  "method":  "GET",
+                                                  "range":  "bytes=48-",
+                                                  "start":  48,
+                                                  "end":  262191,
+                                                  "status":  206
+                                              },
+                                              {
+                                                  "method":  "GET",
+                                                  "range":  "bytes=262192-",
+                                                  "start":  262192,
+                                                  "end":  524335,
+                                                  "status":  206
+                                              },
+                                              {
+                                                  "method":  "GET",
+                                                  "range":  "bytes=524336-",
+                                                  "start":  524336,
+                                                  "end":  786479,
+                                                  "status":  206
+                                              },
+                                              {
+                                                  "method":  "GET",
+                                                  "range":  "bytes=786480-",
+                                                  "start":  786480,
+                                                  "end":  1048623,
+                                                  "status":  206
+                                              },
+                                              {
+                                                  "method":  "GET",
+                                                  "range":  "bytes=1048624-",
+                                                  "start":  1048624,
+                                                  "end":  1310767,
+                                                  "status":  206
+                                              },
+                                              {
+                                                  "method":  "GET",
+                                                  "range":  "bytes=1310768-",
+                                                  "start":  1310768,
+                                                  "end":  1572911,
+                                                  "status":  206
+                                              },
+                                              {
+                                                  "method":  "GET",
+                                                  "range":  "bytes=1572912-",
+                                                  "start":  1572912,
+                                                  "end":  1835055,
+                                                  "status":  206
+                                              },
+                                              {
+                                                  "method":  "GET",
+                                                  "range":  "bytes=1835056-",
+                                                  "start":  1835056,
+                                                  "end":  2097199,
+                                                  "status":  206
+                                              },
+                                              {
+                                                  "method":  "GET",
+                                                  "range":  "bytes=2097200-",
+                                                  "start":  2097200,
+                                                  "end":  2359343,
+                                                  "status":  206
+                                              },
+                                              {
+                                                  "method":  "GET",
+                                                  "range":  "bytes=361751-",
+                                                  "start":  361751,
+                                                  "end":  623894,
+                                                  "status":  206
+                                              },
+                                              {
+                                                  "method":  "GET",
+                                                  "range":  "bytes=623895-",
+                                                  "start":  623895,
+                                                  "end":  886038,
+                                                  "status":  206
+                                              },
+                                              {
+                                                  "method":  "GET",
+                                                  "range":  "bytes=886039-",
+                                                  "start":  886039,
+                                                  "end":  1148182,
+                                                  "status":  206
+                                              },
+                                              {
+                                                  "method":  "GET",
+                                                  "range":  "bytes=1148183-",
+                                                  "start":  1148183,
+                                                  "end":  1410326,
+                                                  "status":  206
+                                              },
+                                              {
+                                                  "method":  "GET",
+                                                  "range":  "bytes=1410327-",
+                                                  "start":  1410327,
+                                                  "end":  1672470,
+                                                  "status":  206
+                                              },
+                                              {
+                                                  "method":  "GET",
+                                                  "range":  "bytes=1672471-",
+                                                  "start":  1672471,
+                                                  "end":  1934614,
+                                                  "status":  206
+                                              },
+                                              {
+                                                  "method":  "GET",
+                                                  "range":  "bytes=1934615-",
+                                                  "start":  1934615,
+                                                  "end":  2196758,
+                                                  "status":  206
+                                              },
+                                              {
+                                                  "method":  "GET",
+                                                  "range":  "bytes=2196759-",
+                                                  "start":  2196759,
+                                                  "end":  2377567,
+                                                  "status":  206
+                                              }
+                                          ]
+                    }
+                ],
+    "stats":  {
+                  "cacheChunks":  4,
+                  "chunkBytes":  65536,
+                  "maxResponseBytes":  262144,
+                  "hits":  30,
+                  "misses":  192,
+                  "evictions":  164,
+                  "peakResidentBytes":  262144,
+                  "cancelledReads":  0,
+                  "peerRangeStatus":  {
+                                          "connection":  "RTCPeerConnectionStateConnected",
+                                          "ice":  "RTCIceConnectionStateConnected",
+                                          "control":  "RTCDataChannelOpen",
+                                          "bulk":  "RTCDataChannelOpen",
+                                          "range":  "RTCDataChannelOpen",
+                                          "rangeBytesSent":  0,
+                                          "rangeRequestsServed":  0,
+                                          "rangeCancelled":  0,
+                                          "rangePending":  0,
+                                          "rangeOutstanding":  0,
+                                          "receivedBytes":  0,
+                                          "events":  [
+                                                         {
+                                                             "kind":  "connection",
+                                                             "value":  "RTCPeerConnectionStateConnecting"
+                                                         },
+                                                         {
+                                                             "kind":  "connection",
+                                                             "value":  "RTCPeerConnectionStateConnected"
+                                                         },
+                                                         {
+                                                             "kind":  "critical",
+                                                             "value":  "RTCDataChannelOpen"
+                                                         },
+                                                         {
+                                                             "kind":  "bulk",
+                                                             "value":  "RTCDataChannelOpen"
+                                                         },
+                                                         {
+                                                             "kind":  "range",
+                                                             "value":  "RTCDataChannelOpen"
+                                                         }
+                                                     ]
+                                      }
+              }
+}

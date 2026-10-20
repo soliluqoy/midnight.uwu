@@ -1,17 +1,18 @@
-#Requires -RunAsAdministrator
+﻿#Requires -RunAsAdministrator
 <#
 .SYNOPSIS
   Installs the complete Vault development toolchain on a fresh Windows 10/11 machine.
 
 .DESCRIPTION
-  Encodes the exact procedure that was verified on 2026-10-18. Safe to re-run:
-  each step is skipped if already satisfied.
+  Based on the host installation audited on 2026-10-18. Existing complete
+  components are reused. Fresh-machine execution has not been repeated after
+  the audit fixes; run verification and native smoke builds after installation.
 
   Installed by this script:
     - Flutter stable (bundles Dart)
-    - Visual Studio 2022 Build Tools (MSVC + Windows SDK + CMake)
+    - Visual Studio 2022 Build Tools (MSVC + ATL + Windows SDK + CMake)
     - JDK 17 (Temurin)
-    - Android SDK: platform-tools, platform 36, build-tools 36.1.0, NDK 29,
+    - Android SDK: platform-tools, platform 36, build-tools 36.0.0 + 36.1.0, NDK 28.2 + 29,
       emulator, system image android-36/google_apis/x86_64
     - Go, CMake, Ninja, 7-Zip (via winget)
     - clumsy 0.3 (Windows link shaping for Phase 0 spikes 2 and 5)
@@ -62,8 +63,8 @@ function Warn($msg) { Write-Host "    [!!] $msg" -ForegroundColor Yellow }
 
 function Get-Archive {
     param([string]$Url, [string]$Out)
-    & $curl -4 -L --retry 3 --retry-delay 5 --retry-all-errors -sS -o $Out $Url
-    if ($LASTEXITCODE -ne 0) { throw "download failed: $Url" }
+    & $curl -4 -f -L --retry 3 --retry-delay 5 --retry-all-errors -sS -o $Out $Url
+    if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $Out)) { throw "download failed: $Url" }
     return $Out
 }
 
@@ -73,7 +74,7 @@ New-Item -ItemType Directory -Path $DevRoot, $tmp -Force | Out-Null
 Step 'Base tooling via winget'
 $wingetPkgs = @(
     'Git.Git', 'GoLang.Go', 'Kitware.CMake',
-    'Ninja-build.Ninja', '7zip.7zip'
+    'Ninja-build.Ninja', '7zip.7zip', 'Gyan.FFmpeg.Essentials'
 )
 foreach ($p in $wingetPkgs) {
     $already = winget list --id $p --exact --accept-source-agreements 2>$null |
@@ -82,13 +83,17 @@ foreach ($p in $wingetPkgs) {
     Write-Host "    installing $p ..."
     winget install --id $p --exact --silent --accept-package-agreements `
                    --accept-source-agreements --disable-interactivity | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "winget install failed for $p (exit $LASTEXITCODE)" }
     Ok $p
 }
 
 # ---------------------------------------------------------------- JDK 17
 Step 'JDK 17 (Temurin)'
 $jdkPath = Join-Path $DevRoot 'jdk17'
-if (Test-Path (Join-Path $jdkPath 'bin\java.exe')) {
+$existingJdk = Get-ChildItem -LiteralPath $jdkPath -Directory -ErrorAction SilentlyContinue |
+               Where-Object { Test-Path -LiteralPath (Join-Path $_.FullName 'bin\java.exe') } |
+               Sort-Object Name -Descending | Select-Object -First 1
+if ($existingJdk -or (Test-Path (Join-Path $jdkPath 'bin\java.exe'))) {
     Skip 'JDK 17'
 } else {
     New-Item -ItemType Directory -Path $jdkPath -Force | Out-Null
@@ -100,7 +105,12 @@ if (Test-Path (Join-Path $jdkPath 'bin\java.exe')) {
     Remove-Item $zip -Force
     Ok 'JDK 17'
 }
-$javaHome = (Get-ChildItem $jdkPath -Directory | Select-Object -First 1).FullName
+$javaHome = if (Test-Path -LiteralPath (Join-Path $jdkPath 'bin\java.exe')) { $jdkPath } else {
+    (Get-ChildItem -LiteralPath $jdkPath -Directory |
+     Where-Object { Test-Path -LiteralPath (Join-Path $_.FullName 'bin\java.exe') } |
+     Sort-Object Name -Descending | Select-Object -First 1).FullName
+}
+if (-not $javaHome) { throw 'No extracted JDK with bin\java.exe was found.' }
 $env:JAVA_HOME = $javaHome
 Ok "JAVA_HOME = $javaHome"
 
@@ -112,13 +122,27 @@ if (Test-Path (Join-Path $flutterRoot 'bin\flutter.bat')) {
 } else {
     $zip = Join-Path $tmp "flutter_$FlutterVersion.zip"
     Get-Archive "https://storage.googleapis.com/flutter_infra_release/releases/stable/windows/flutter_windows_$FlutterVersion-stable.zip" $zip | Out-Null
+    $manifest = (& $curl -4 -f -sS 'https://storage.googleapis.com/flutter_infra_release/releases/releases_windows.json') | ConvertFrom-Json
+    if ($LASTEXITCODE -ne 0) { throw 'Could not retrieve official Flutter checksum manifest.' }
+    $release = $manifest.releases | Where-Object { $_.version -eq $FlutterVersion -and $_.channel -eq 'stable' } | Select-Object -First 1
+    if (-not $release.sha256 -or (Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash -ne $release.sha256) {
+        throw 'Flutter archive checksum does not match official manifest.'
+    }
     # bsdtar is dramatically faster than Expand-Archive for a 1.8 GB zip.
     & tar.exe -xf $zip -C $DevRoot
+    if ($LASTEXITCODE -ne 0) { throw 'Flutter archive extraction failed.' }
     Remove-Item $zip -Force
     Ok 'Flutter SDK'
 }
 $env:Path = "$flutterRoot\bin;$env:Path"
-git config --global --add safe.directory ($flutterRoot -replace '\\','/')
+$flutterSafePath = $flutterRoot -replace '\\','/'
+$existingSafePaths = @(git config --global --get-all safe.directory)
+if ($existingSafePaths -notcontains $flutterSafePath) {
+    git config --global --add safe.directory $flutterSafePath
+    if ($LASTEXITCODE -ne 0) { throw 'Could not register the Flutter SDK Git directory.' }
+}
+& "$flutterRoot\bin\flutter.bat" config "--jdk-dir=$javaHome"
+if ($LASTEXITCODE -ne 0) { throw 'Flutter JDK configuration failed.' }
 Ok "Flutter at $flutterRoot"
 
 # ---------------------------------------------- Visual Studio Build Tools
@@ -128,7 +152,7 @@ $haveVc = $false
 if (Test-Path $vswhere) {
     $haveVc = [bool](& $vswhere -latest -products * -find 'VC\Tools\MSVC\**\bin\Hostx64\x64\cl.exe' 2>$null)
 }
-if ($haveVc -and $haveVc -isnot [bool] -or (Test-Path $VsPath)) {
+if ($haveVc) {
     Skip "MSVC toolchain (already present)"
 } else {
     $boot = Join-Path $tmp 'vs_BuildTools.exe'
@@ -139,14 +163,19 @@ if ($haveVc -and $haveVc -isnot [bool] -or (Test-Path $VsPath)) {
         # NOTE: each element below MUST stay a single argument. See bug #1.
         "--installPath=$VsPath",
         '--add', 'Microsoft.VisualStudio.Workload.VCTools',
+        '--add', 'Microsoft.VisualStudio.Component.VC.ATL',
         '--add', 'Microsoft.VisualStudio.Component.VC.CMake.Project',
         '--add', 'Microsoft.VisualStudio.Component.Windows11SDK.26100',
         '--includeRecommended'
     )
-    $p = Start-Process -FilePath $boot -ArgumentList $vsArgs -Wait -PassThru
-    if ($p.ExitCode -ne 0) { throw "VS Build Tools installer failed with exit code $($p.ExitCode)" }
+    $p = Start-Process -FilePath $boot -ArgumentList $vsArgs -WindowStyle Hidden -Wait -PassThru
+    if ($p.ExitCode -notin @(0,3010)) { throw "VS Build Tools installer failed with exit code $($p.ExitCode)" }
+    if ($p.ExitCode -eq 3010) { Warn 'VS installation requests a reboot before verification.' }
     Ok "MSVC at $VsPath"
 }
+
+# Existing MSVC alone is insufficient for flutter_secure_storage_windows.
+& "$PSScriptRoot\install-windows-atl.ps1"
 
 # ---------------------------------------------------------------- Android SDK
 Step 'Android SDK'
@@ -157,7 +186,8 @@ if (-not (Test-Path $androidExe)) {
     New-Item -ItemType Directory -Path (Join-Path $sdk 'cmdline-tools') -Force | Out-Null
     $zip = Join-Path $tmp 'cmdline-tools.zip'
     # Resolve the newest published build rather than hardcoding a number.
-    $xml = & $curl -4 -sS 'https://dl.google.com/android/repository/repository2-3.xml'
+    $xml = & $curl -4 -f -sS 'https://dl.google.com/android/repository/repository2-3.xml'
+    if ($LASTEXITCODE -ne 0) { throw 'Could not retrieve Android command-line tools metadata.' }
     $build = ([regex]::Matches($xml, 'commandlinetools-win-[0-9]+_latest\.zip') |
               ForEach-Object { $_.Value } |
               ForEach-Object { [int]($_ -replace '.*win-([0-9]+)_.*','$1') } |
@@ -173,16 +203,15 @@ if (-not (Test-Path $androidExe)) {
 $env:ANDROID_HOME = $sdk
 $env:ANDROID_SDK_ROOT = $sdk
 
-# Pre-write the accepted licenses so nothing blocks on an interactive prompt.
-$lic = Join-Path $sdk 'licenses'
-New-Item -ItemType Directory -Path $lic -Force | Out-Null
-$hashes = "8933bad161af4178b1185d1a37fbf41ea5269c55`nd56f5187479451eabf01fb78af6dfcb131a6481e`n24333f8a63b6825ea9c5514f83c2829b004d1fee"
-'android-sdk-license', 'android-sdk-preview-license', 'android-sdk-arm-dbt-license' |
-    ForEach-Object { $hashes | Set-Content (Join-Path $lic $_) -Encoding ASCII }
-Ok 'licenses accepted'
+# Use the official license flow. Do not synthesize license acceptance files.
+& (Join-Path $sdk 'cmdline-tools\latest\bin\sdkmanager.bat') --licenses
+if ($LASTEXITCODE -ne 0) { throw 'Android license acceptance did not complete.' }
 
 # NOTE: SLASH-separated ids. See bug #2.
-$pkgs = @('platform-tools', 'platforms/android-36', 'build-tools/36.1.0', 'ndk/29.0.14206865')
+# Flutter 3.47.7's generated runner defaults to NDK 28.2. Installing only 29
+# makes Gradle call the deprecated sdkmanager shim with an incompatible ID.
+# The pinned native plugins also compile against platform 35 and SDK CMake 3.22.1.
+$pkgs = @('platform-tools', 'platforms/android-35', 'platforms/android-36', 'build-tools/36.0.0', 'build-tools/36.1.0', 'ndk/28.2.13676358', 'ndk/29.0.14206865', 'cmake/3.22.1')
 if (-not $SkipEmulator) { $pkgs += 'emulator', 'system-images/android-36/google_apis/x86_64' }
 Write-Host "    installing: $($pkgs -join ', ')"
 & $androidExe sdk install "--sdk=$sdk" @pkgs
@@ -192,7 +221,12 @@ Ok 'Android SDK packages'
 if (-not $SkipEmulator) {
     Write-Host '    creating AVD vault36 ...'
     $avd = Join-Path $sdk 'cmdline-tools\latest\bin\avdmanager.bat'
-    'no' | & $avd create avd -n vault36 -k 'system-images/android-36/google_apis/x86_64' -d pixel_7 2>&1 | Out-Null
+    $existingAvds = & (Join-Path $sdk 'emulator\emulator.exe') -list-avds
+    if ($LASTEXITCODE -ne 0) { throw 'Could not list Android virtual devices.' }
+    if ($existingAvds -notcontains 'vault36') {
+        'no' | & $avd create avd -n vault36 -k 'system-images/android-36/google_apis/x86_64' -d pixel_7 2>&1 | Out-Null
+        if ($LASTEXITCODE -ne 0) { throw 'AVD creation failed.' }
+    }
 }
 
 # ---------------------------------------------------------------- clumsy

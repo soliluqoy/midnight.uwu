@@ -1,0 +1,23 @@
+name: vault_delivery
+description: Authenticated media browsing, sparse range cache and resumable downloads.
+version: 0.1.0
+publish_to: none
+resolution: workspace
+environment:
+  sdk: ^3.13.5
+dependencies:
+  crypto: 3.0.7
+  vault_identity:
+    path: ../vault_identity
+  vault_media_index:
+    path: ../vault_media_index
+  vault_net:
+    path: ../vault_net
+  vault_player:
+    path: ../vault_player
+  vault_protocol:
+    path: ../vault_protocol
+dev_dependencies:
+  fake_async: 1.3.3
+  flutter_test:
+    sdk: flutter

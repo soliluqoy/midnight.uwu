@@ -1,0 +1,35 @@
+{
+  "kind": "Native Windows viewer+decoder, real PeerSession; local video source and injected loss/lifecycle events",
+  "before": "[8041, true, 37.0]",
+  "recovered": "[false, false, null, 14166, true, 37.0]",
+  "background": "[false, (playing: false, position: 0:00:11.166666, volume: 37.0)]",
+  "returned": "[false, false, null, 11166, false, 37.0]",
+  "snapshot": {
+    "ready": true,
+    "failure": null,
+    "alice": "connected",
+    "bob": "connected",
+    "session": "hlXA7JjXsG49jJjhb3sLnA==",
+    "route": {
+      "local": "host",
+      "remote": "host"
+    },
+    "received": [
+      {
+        "nativeRecovery": "before"
+      }
+    ],
+    "states": [
+      "bob:authenticating",
+      "alice:authenticating",
+      "alice:connected",
+      "bob:connected",
+      "alice:negotiating",
+      "alice:connected",
+      "alice:negotiating",
+      "alice:connected"
+    ],
+    "opens": 3,
+    "releases": 2
+  }
+}

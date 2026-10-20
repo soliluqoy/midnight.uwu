@@ -1,0 +1,49 @@
+﻿{
+    "checkedAt":  "2026-10-18T19:58:09.8922217+08:00",
+    "scope":  "Synthetic direct WebRTC interop; not production authentication or media delivery",
+    "bytesPerDirection":  33554432,
+    "participants":  [
+                         {
+                             "androidNetworkMonitorDisabled":  false,
+                             "endpoint":  "http://127.0.0.1:48931",
+                             "platform":  "windows"
+                         },
+                         {
+                             "androidNetworkMonitorDisabled":  null,
+                             "endpoint":  "http://127.0.0.1:48933",
+                             "platform":  "pion-go"
+                         }
+                     ],
+    "forward":  {
+                    "passed":  true,
+                    "bytes":  33554432,
+                    "sha256":  "6df86c2014e752807c6c6d8fc65b62f9e2eb3514773e1f6a15e919852a77193a",
+                    "milliseconds":  3657,
+                    "mibPerSecond":  8.748887250902776,
+                    "highestNativeBufferedBytes":  470492,
+                    "nativeBufferPolls":  2048,
+                    "bufferLowCallbacks":  0,
+                    "maxMessageBytes":  16384,
+                    "path":  {
+                                 "verified":  true,
+                                 "localType":  "host",
+                                 "remoteType":  "host",
+                                 "currentRoundTripTime":  0.0
+                             }
+                },
+    "reverse":  {
+                    "bytes":  33554432,
+                    "highestNativeBufferedBytes":  507904,
+                    "maxMessageBytes":  16384,
+                    "mibPerSecond":  8.30679852013346,
+                    "milliseconds":  3852,
+                    "passed":  true,
+                    "path":  {
+                                 "localType":  "host",
+                                 "remoteType":  "host",
+                                 "verified":  true
+                             },
+                    "sha256":  "6df86c2014e752807c6c6d8fc65b62f9e2eb3514773e1f6a15e919852a77193a"
+                },
+    "passed":  true
+}

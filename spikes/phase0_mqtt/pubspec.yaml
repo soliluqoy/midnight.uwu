@@ -1,0 +1,17 @@
+name: vault_mqtt_spike
+description: Throwaway Phase 0 MQTT signaling probe. Not Vault.
+publish_to: none
+version: 0.0.0
+
+environment:
+  sdk: ">=3.13.0 <4.0.0"
+
+dependencies:
+  cryptography: 2.9.0
+  mqtt5_client: 5.1.0
+  typed_data: ^1.4.0
+  vault_wire_spike:
+    path: ../phase0_wire
+
+dev_dependencies:
+  test: ^1.25.0

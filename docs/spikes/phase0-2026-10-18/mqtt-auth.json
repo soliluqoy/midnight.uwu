@@ -1,0 +1,17 @@
+{
+  "scenario": "auth",
+  "checkedAt": "2026-10-18T14:02:43.103123Z",
+  "client": "mqtt5_client 5.1.0, TLS, MQTT 5, QoS 1",
+  "broker": "tools/mqtt_testbroker (mochi-mqtt v2.7.9, local)",
+  "wrongPasswordConnected": false,
+  "wrongPasswordConnectFailures": 1,
+  "plaintextConnected": false,
+  "untrustedCaConnected": false,
+  "subscribeOutsideTreeRefusedBySuback": true,
+  "outsideTreeMessageDelivered": false,
+  "subscribeOutsideTreeFailed": true,
+  "subscribeInsideTreeSucceeded": true,
+  "retainedMessageDeliveredToLateSubscriber": false,
+  "passed": true,
+  "uncaughtClientErrors": []
+}

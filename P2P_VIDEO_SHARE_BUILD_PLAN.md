@@ -1,344 +1,552 @@
-# BUILD PROMPT — "Vault": a serverless, autonomous P2P video/photo sharing app (Android + Windows)
-
-> Paste everything below this line into your coding AI as the single instruction set.
-
----
-
-## 0. ROLE & OBJECTIVE
-
-You are the lead architect + senior engineer for a new cross-platform application. You will design and build, iteratively, a **video and photo sharing app that runs on Android and Windows with ZERO servers that we operate**.
-
-The product, working name **"Vault"**:
-
-- Each user runs the app on their own device.
-- The app exposes a **local media folder** (photos + videos only). Users drop files into it using the OS file manager, exactly like a normal folder.
-- The user can **publish** that folder (share the "connection") and **control who is allowed** to view it.
-- Any other user can **search/discover** publishers and browse what they offer.
-- Any allowed viewer can **stream** the media **on demand, at any time** (VOD-style, with seek), and optionally watch a **live** version of it.
-- The system is **peer-to-peer AND multi-peer** (one owner → many viewers; viewers can also connect among themselves), fully **autonomous** (no accounts, no cloud, no admin, no telemetry, no telemetry endpoint, no licensing server), and **simple** for the end user.
-
-**Assume modern broadband for everyone.** Do not design for 3G. Do not add a CDN, a backend, an account system, a database server, or a push-notification service. Anything that behaves like a server is only allowed if it is (a) a **public third-party relay we do not own** (Nostr relay, MQTT broker, STUN server), or (b) an **optional, user-supplied** setting.
-
----
-
-## 1. HARD CONSTRAINTS (non-negotiable)
-
-1. **No backend we write, host, or pay for.** No cloud functions, no S3/GCS, no Firebase, no managed DB, no auth provider, no crash reporting service, no remote config.
-2. **All media bytes flow directly peer-to-peer** over WebRTC (DTLS-SRTP for media, DTLS for data channels). Never through a third party.
-3. **No account.** Identity = a locally generated cryptographic keypair. It never leaves the device unencrypted-as-secret; the public key is the public identity.
-4. **Offline-tolerant, restart-tolerant, network-flap-tolerant.** The app must survive process death, sleep, and network loss without corrupting state or leaking connections.
-5. **Consistent user experience on both Android and Windows.** One visual language, one navigation model, one feature set — no "the Windows version can't do that."
-6. **Consent is owner-enforced.** Access is a capability, not a UI state. A viewer who is not granted cannot even open the byte stream.
-7. **Consent is also viewer-enforced.** A viewer can see (and revoke) who is connected to their device, kill any session instantly, and the owner never gets silent background access.
-
----
-
-## 2. TECHNOLOGY DECISIONS (researched — commit to these, but still validate in Spike 0)
-
-### 2.1 Cross-platform app shell → **Flutter + Dart** (one codebase, Android + Windows)
-- `flutter_webrtc` (currently `1.6.2+hotfix.x`, bundling **libwebrtc m150 / branch-150.7871.01**) is the only mature engine that gives **Android + Windows** from one codebase with: Unified Plan, DataChannel, **Simulcast**, screen capture, and hardware codecs on both platforms.
-- Known gaps to design around (documented in the plugin's own issue tracker, pin versions accordingly):
-  - Desktop `RTCRtpSender.setParameters()` **ignores encoding changes** (issue #2216) → we must recreate the sender/transceiver to change resolution/bitrate.
-  - Desktop `onBufferedAmountLow` **never fires** (issue #2210) → we must **poll `bufferedAmount`** as the backpressure signal (treat the event as an optimization only).
-  - Desktop `addTrack` runs on a detached thread and can race `createOffer` (issue #2216/2218) → serialize negotiation behind a single mutex/queue.
-  - H.265/HEVC exists (since 1.1.0) but HW support is device-dependent; do not put it on the critical path.
-  - Audio playback on Windows desktop has had regressions → verify in Spike 0 and keep an audio path per platform if needed.
-- **Rejected alternatives (state why in the ADR):**
-  - *Kotlin Multiplatform + Compose Multiplatform*: better desktop UX/native feel, but you would write and maintain **two** WebRTC integrations (Android `org.webrtc` + Windows/Media Foundation). Weeks of native work, permanent double maintenance.
-  - *Electron + Trystero on Windows, Capacitor + custom bridge on Android*: fastest Web prototype (Trystero gives you free serverless discovery in JS), but two native bridges and JS↔native frame marshalling for every chunk. Acceptable **only** as a throwaway prototype for validating the discovery protocol.
-  - *Tauri v2*: same two-bridge problem, smaller ecosystem for this.
-  - *Pure libp2p/pion*: excellent, Go-native, but gives you no app UI on Windows and no Android story without a UI framework anyway.
-
-### 2.2 P2P transport → **WebRTC** (never raw TCP/UDP sockets)
-- Media: `RTCPeerConnection` tracks. Control/data: `RTCDataChannel`s.
-- Always `RTCConfiguration`:
-  - `iceServers`: public STUN only — `stun:stun.l.google.com:19302`, `stun:stun.cloudflare.com:3478`, `stun:stun.nextcloud.com:443`, plus any user-added STUN. **No bundled TURN.**
-  - `sdpSemantics: Unified Plan`, `bundlePolicy: maxBundle`, `rtcpMuxPolicy: require`.
-  - Enable **mDNS obfuscated host candidates** (default in libwebrtc) so LAN peers connect without leaking local IPs to the relay.
-  - `iceTransportPolicy: all`; for known-LAN peers consider `iceTransportPolicy: relay`-free fast path via cached local candidates.
-- ICE candidate pair selection: prefer `host` (LAN) → `srflx` → user-supplied TURN. Show the user *why* a connection failed ("your network likely uses symmetric NAT — add a TURN server in Settings → Advanced" — with the field left empty by default).
-
-### 2.3 Discovery + signaling (the only place a third party is touched) → **pluggable `SignalingStrategy` interface**, MQTT first
-Define one interface in Dart and implement 3 strategies behind it:
-
-```dart
-abstract class SignalingStrategy {
-  Stream<SignalMessage> get inbound;
-  Future<void> publish(SignalMessage m);
-  Future<void> subscribe(Set<Topic> topics);
-  Stream<bool> get connected;           // relay connectivity
-  int get redundancy;                    // how many endpoints held simultaneously
-}
-```
-Implementations:
-1. **`MqttSignaling`** (default): public MQTT-over-TLS brokers with anonymous `connect`/anonymous-will. WSS endpoints to hardcode: `wss://broker.emqx.io:8084/mqtt`, `wss://test.mosquitto.org:8081/mqtt`, `wss://mqtt.eclipseprojects.io:443/mqtt`. Hold **2–3 concurrently**, fail over transparently, reconnect with exponential backoff + jitter (1s→60s cap). MQTT 5 QoS 0 for candidate trickling, QoS 1 for offers/answers/grants.
-2. **`NostrSignaling`** (fallback): ephemeral kinds for SDP offers/answers/candidates, signed with the device identity key, published to 3–5 public relays; ignore retained messages; use `NIP-44`-style encryption for offer/answer payloads.
-3. **`ManualSignaling`** (the "truly no infrastructure" escape hatch): the app renders a compressed offer blob as **QR + 12-word/short-code + a short text blob**; the other side scans/pastes it; answers flow back the same way. Used for air-gapped/firewalled cases and as the test oracle for the other two.
-
-Rules for all strategies:
-- Signaling payloads only. **Media and file bytes must never touch a relay.** Enforce this in code and in a unit test (a relay byte-budget assertion on the signaling client wrapper).
-- Topic scheme is namespaced and versioned: `vault/v1/<scope>/<peerId>/offer|answer|candidate|announce|grant|revoke|query`.
-- Every message is **signed with the device Ed25519 key** and carries `appVersion`, `protocolVersion`, `nonce`, `ts`, `expiresAt`. Reject unsigned/expired/future-dated messages. This replaces "accounts" with cryptographic identity.
-
-### 2.4 Directory / search → **serverless presence directory over the same signaling transports**
-No central index is possible, so we build a *federated, expiring, gossiped* directory on top of pub/sub:
-
-- **Announce**: every publishing node publishes `announce` to `vault/v1/presence/<shard>/<nodeId>` every **30s** (QoS 0, never retained), heartbeat with `ttl = 90s`. Peers cache announcements in local SQLite with a hard expiry sweep every 15s.
-- **Shard function**: `shard = first 2 chars of blake3(nodeId + epoch)` → 256 shards; each node subscribes to the shard of the query it is running **plus a rotating 1/8 sample of all shards** for background gossip/backfill. This bounds relay load while keeping discovery fast (~1 shard scan per query, ~30k announcements max in cache per shard in the worst case).
-- **Query**: a `query` message is published to `vault/v1/query` with a bloom-filter of wanted terms (display name / tags). Nodes that hold matches reply **directly** with `announce`-style records to the querier (unicast over relay topic or, better, over an already-connected DataChannel).
-- **Gossip fan-out**: every connected peer exchanges its 200 freshest announcements with each of up to 5 peers every 60s. This makes the directory self-healing and multi-hop with no index operator.
-- **Result quality**: rank by (a) reciprocal path quality measured from `getStats()` on existing connections, (b) announced `uplinkMbps` and media count, (c) recent successful connect rate (locally observed). Never trust an announced bandwidth value for anything other than ranking — verify with real connection stats before streaming.
-- **Cold-start problem**: a brand-new node has zero peers and thus hears nothing. Solve by (a) always connecting to a small set of **public "gateway" topics** whose messages are re-broadcast by any node that receives them (a 2-hop epidemic from any seed), and (b) seeding with a handful of well-known public Nostr relay/MQTT "beacon" topics. Document the residual limitation honestly in-app.
-
-### 2.5 Access control (owner lets them in) → **capability tokens over DataChannel + in-band ACL
-- Owner maintains an ACL in a signed document: `{ nodeId, displayName, role: viewer|approved|blocked, expiresAt, lastSeenIpHint }`, stored locally, versioned, and pushed to approved viewers on connect.
-- A viewer seeking access: connects (DataChannel only, **no media tracks offered**), sends `request { profileMessage, nodeVersion }`. Owner sees an in-app prompt with a 60s countdown and can Approve / Deny / Always-allow-this-node.
-- Approval issues a **capability token**: `HMAC-SHA256(streamSecret, nodeId || mediaId || level || issuedAt || expiresAt)` where `streamSecret` is a per-installation 32-byte random, exchanged inside the DTLS-encrypted channel. The viewer cannot stream without a valid token, and cannot reuse a token for another media id/level/expiry.
-- Every token use is logged locally with a visible "Connected now" row; owner can revoke → all affected PeerConnections are closed within 1s.
-- Blocking = refusing the DataChannel handshake + short-lived tombstone so a blocked node is not re-prompted.
-
-### 2.6 Media delivery → **two engines, one interface**
-```dart
-abstract class MediaSource {                       // implemented twice
-  Stream<Uint8List> read(int byteOffset, int length);
-  int get length;
-  Future<void> close();
-}
-```
-- **Engine A — `ChunkedFileSource` (default, on-demand VOD).**
-  Serves byte ranges over a reliable ordered DataChannel. **Zero transcode, zero CPU, plays at native source quality, seek is instant.**
-- **Engine B — `LiveTranscodeSource` (optional, "watch together").**
-  Decodes the file locally and re-publishes it as a live WebRTC track with simulcast.
-- The player picks Engine A always; Engine B is offered as a toggle ("Watch Live") that shows latency and bitrate.
-
----
-
-## 3. EFFICIENCY: BITRATE, CODEC, AND TRANSPORT BUDGETS (use these numbers, don't invent new ones)
-
-### 3.1 Codec policy
-- **H.264 (Constrained Baseline → Constrained High)** everywhere, via **hardware encode** (Android `MediaCodec`; Windows Media Foundation H.264 MFT). Rationale: lowest CPU/battery, works on every Android device, and interops with anything WebRTC-shaped later.
-- **VP9** as the software fallback when HW H.264 encode is unavailable (plugin forces SW codec lists; Android HW VP9 is disabled by default upstream — that's fine).
-- **Audio: Opus**, 48 kHz. VOD/streams: stereo 96 kbps CBR, mono 32 kbps for talk-style. Enable DTX for live talk, disable for file fidelity.
-- Never transcode per viewer. One decode + one set of encoded frames, N senders.
-
-### 3.2 Video ladder (H.264, 30 fps, CBR, keyframe every 2 s)
-| Layer | rid | Resolution | maxBitrate | fps | scaleResolutionDownBy |
-|---|---|---|---|---|---|
-| low | `l` | 426×240 | 300 kbps | 15 | 4 |
-| mid | `m` | 640×360 | 800 kbps | 30 | 2 |
-| high | `h` | 1280×720 | 2_500 kbps | 30 | 1 |
-| (opt) ultra | `u` | 1920×1080 | 4_500 kbps | 30 | 1 |
-
-Wire overhead: RTP+UDP+SRTP+DTLS+IP ≈ **+12%** over the codec bitrate. Add **+5%** for retransmissions/ICE keepalives on the data channel side. So a 720p30 layer costs ≈ **2.9 Mbps on the wire**, realistically budget **3.0 Mbps**.
-
-Per-viewer budget = `videoBitrate × 1.17 + audioBitrate × 1.17`.
-
-### 3.3 Host uplink governor (the multi-peer core problem)
-- On session start, measure uplink with a short **STUN-less bandwidth probe** (send 3 × 2 MB over the DataChannel, take the best RTT of 5) → `measuredUplinkMbps`.
-- **Default cap = 70 % of measured uplink**, user-overridable (`auto / 1 / 2 / 5 / 10 / 25 Mbps / unlimited`).
-- `maxViewers = floor(cap / perViewerCost)` for the current top layer. Hard cap **6 concurrent senders** in v1 (uplink + CPU + desktop decode threads).
-- When viewer count exceeds capacity, do NOT degrade everyone: **first** push new viewers to `mid` or `low`, **then** demote the viewers with the worst measured RTT/jitter to a lower layer, **never** below `low`, **then** queue with a visible position and auto-connect when a slot frees.
-- The whole rule lives in one pure, unit-tested Dart module: `UplinkGovernor.decide({cap, viewers, stats}) -> Map<peerId, Layer>`.
-
-### 3.4 Adaptation settings (baked in from the start)
-- Congestion control: **GCC / transport-wide CC** with `googTransportCc` interceptor. Polling `getStats()` **once per second**, exposed in a debug overlay (up/down, loss, RTT, jitter, NACK, PLI, actual vs target bitrate, freeze count).
-- `degradationPreference`: **`maintainResolution`** for file content (drop fps before resolution), `maintainFramerate` for screen/live.
-- **Send-side BWE cap**: `RTCRtpEncoding.maxBitrate` set from the governor; also set `maxFramerate`.
-- **Keyframe policy**: IDR every 2 s; on VOD seek/chunk boundary, send **one** PLI request, throttled to 1 per 500 ms, and cap at 3 retries then fall back to Engine A (chunked) instead of stalling. Never request PLI faster than that — it makes the encoder collapse.
-- **DataChannel tuning**: 16 KiB messages, sender window maintained by polling `bufferedAmount` (≤ 512 KiB high-water, resume ≤ 256 KiB), poll every 50 ms. Prefer **one** reliable ordered channel for file bytes + one unordered `maxRetransmits: 0` channel for stats/control so a stalled file transfer can never block keepalives. Use a second unordered channel for discovery gossip.
-- **MTU**: rely on libwebrtc path MTU 1200 for mobile friendliness.
-
-### 3.5 DataChannel throughput expectations (for UI copy and capacity math)
-| Link | Single DC (SCTP) expected |
-|---|---|
-| Same Wi‑Fi LAN | 20–40 MB/s |
-| 100 Mbps broadband | 6–11 MB/s |
-| 4G/LTE | 1–4 MB/s |
-| 2 GB RAM Android, mid device | 1.5–3 MB/s (CPU/GC bound) |
-SCTP single association is the ceiling — do not shard into many channels for speed; measure, then shard **only** if a benchmark shows > 20 % headroom (target: keep 3 channels total).
-
-### 3.6 Storage / indexing efficiency
-- Index = SQLite (`drift`) per device: path, size, mtime, content hash, duration, width/height/fps/codec (parsed from container header only — never decode to find out), poster thumbnail.
-- Hash = **BLAKE3** over first 1 MiB (fast id) + full hash computed lazily in the background. `mtime+size` short-circuits re-hash.
-- Thumbnails: extract one 320 px JPEG (q≈70, ≈12–18 KB) at **22 % of duration** using platform thumbnails (MediaMetadataRetriever on Android, Media Foundation thumbnailer on Windows) **in a background isolate/thread pool**, concurrency 2, never on the UI isolate. Windows uses `ShellItemThumbnail` when available (fast, cached by Explorer).
-- Folder watcher: Windows `ReadDirectoryChangesW` (via a small FFI package) + 5 s reconcile poll; Android SAF tree URI + **15 s reconcile poll** (no reliable change events) + MediaStore for newly added camera output. Debounce 500 ms.
-
-### 3.7 Energy / background rules
-- Windows: tray app, `QPC`/idle-aware, pause thumbnail work when unfocused, optional "Start with Windows".
-- Android: **foreground service** with a persistent notification while publishing or while a viewer is streaming to this device; `WAKE_LOCK` only during active sessions; work must survive Doze → schedule index refresh via `WorkManager` with a 15-min periodic job and wake on SAF change hints.
-- Screen-on-while-streaming is opt-in per session.
-
----
-
-## 4. REPOSITORY & ARCHITECTURE
-
-Monorepo, one Flutter app + pure-Dart libraries (so the protocol is unit-testable without a device):
-
-```
-apps/vault/                     Flutter app (android/, windows/, lib/)
-packages/
-  vault_identity/               Ed25519/X25519 keys, QR identity, safety-number verification
-  vault_protocol/               wire format, message schemas (versioned), signing, HMAC tokens, codec
-  vault_signaling/              SignalingStrategy + Mqtt / Nostr / Manual implementations
-  vault_net/                    PeerMesh: PeerConnection lifecycle, negotiation queue, retry, stats
-  vault_directory/              announce/query/gossip, SQLite presence cache, ranking
-  vault_media_index/            scanner, watchers, BLAKE3, metadata parse, thumbnails
-  vault_delivery/               ChunkedFileSource, LiveTranscodeSource, UplinkGovernor, chunk protocol
-  vault_player/                 Flutter media player (Windows: Media Foundation/`video_player`; Android: ExoPlayer)
-  vault_ui/                     design system, screens, settings, debug overlay
-tools/
-  interop_harness/              pion/webrtc + vnet + bwe-test based automated connection tests
-docs/adr/                       every decision above, written down
-```
-
-Layering rule: `ui → (directory, delivery, player) → (net, signaling, media_index) → (protocol, identity)`. `vault_protocol` and `vault_identity` must have **zero** Flutter imports.
-
-State management: **Riverpod** (code-gen), `go_router` for navigation. No global mutable singletons outside a DI container; every service is constructible in tests.
-
-Concurrency: strict actor-ish model — **one `PeerMesh` isolate-free but single-threaded event queue** per connection for negotiation (fixes the detached-thread race), plus **separate isolates** for file reads/chunking, hashing, and thumbnailing. Never read files on the UI isolate.
-
----
-
-## 5. PROTOCOL SPECIFICATION (write this down, then implement exactly)
-
-All messages: CBOR or MessagePack (not JSON — smaller on the wire), with a 1-byte version, 2-byte type, 32-byte Ed25519 signature over the canonical payload. Reject anything unknown, unsigned, or with `ts` outside ±120 s.
-
-### 5.1 Signaling-plane messages (through relay)
-- `HELLO { protocolVersion, appVersion, nodeId, displayName, ports, capabilities, uplinkHint }`
-- `OFFER / ANSWER { sdp, sdpType }` (trickle candidates follow as `CANDIDATE`)
-- `CANDIDATE { candidate, mid, sdpMLineIndex }`
-- `ANNOUNCE { ttl, shard, mediaIndexSummary, aclVersion, displayName, tags[], endpointHints[] }`
-- `QUERY { termsBloom, shardSet, nonce }`
-- `GRANT / REVOKE { mediaId?, token?, reason }`
-- `BYE { reason }`
-
-### 5.2 Data-plane messages (inside DTLS, never on relay)
-- `DC_HELLO { nodeId, appVersion, token? }`
-- `REQUEST_ACCESS { message, avatarHash }` → `ACCESS_RESULT { allowed, token, expiresAt, streamSecret, acl }`
-- `INDEX_REQUEST { cursor, filter, pageSize }` → `INDEX_PAGE { items[], cursor, total }`
-  (Browsing a library must **page** — never dump a 50 000-item manifest.)
-- `MANIFEST_REQUEST { mediaId }` → `MANIFEST { id, title, container, durationMs, size, width, height, fps, videoCodec, audioCodec, posterBlob, chunkSize, chunkCount }`
-- `RANGE_REQUEST { mediaId, offset, length, chunkIndex }` → `RANGE_CHUNK { mediaId, chunkIndex, bytes, isLast }`
-- `RESUME { mediaId, haveChunk }`
-- `PLAY_LIVE { mediaId, layerHint }` → `LIVE_READY { layer, actualBitrate }`
-- `STATS_PUSH { fps, kbps, loss, rttMs, droppedFrames }` (unordered channel)
-- `GOSSIP { announcements[<=32] }`
-- `BYE { reason }`
-
-### 5.3 Chunk protocol
-- Chunk size **256 KiB**. Sender coalesces file reads with a 512 KiB read-ahead buffer per active session.
-- Sender must support **concurrent requests from the same viewer** (prefetch of the next 2 chunks) to hide RTT over WAN.
-- Each chunk carries `chunkIndex`; receiver verifies `BLAKE3` of the chunk (truncated to 16 bytes is enough) and requests a resend on mismatch; hard-fail after 2 retries and tell the player to re-request the manifest.
-- Receiver writes to a temp file in its cache dir and plays progressively (local HTTP range feed or a progressive demuxer feeding the platform player). Cache eviction by LRU with a user-set budget (default 2 GB desktop / 512 MB mobile).
-- Full-file "Download" mode reuses the exact same range protocol with a progress UI and no player.
-
----
-
-## 6. FUNCTIONAL SCOPE (v1)
-
-1. **Onboarding** (3 screens, no account): choose display name + avatar; app generates identity keypair and shows a QR + safety number; scan a friend's QR to add them as a known contact.
-2. **Library tab**: the shared folder. Grid of posters, videos get a duration badge. Owner sees a "Publish" toggle + "Shared with N nodes" row. Auto-indexing with visible progress.
-3. **Browse tab (search)**: text search over remote owners' names/tags; results show owner, # items, total duration, connection quality badge (from real `getStats` history), and a `Request access` button. Filters: photos / videos / any, sort by quality-of-connection.
-4. **Access flow**: pending prompt on the owner's device (toast + full-screen if app open) with Approve / Deny / Always allow. Viewer sees a live "waiting" state with cancel.
-5. **Player**: seek bar, thumbnail scrub preview, quality/speed toggle, "Save offline" (cached copy), live bitrate/RTT/freeze overlay (long-press to show), and a peer-presence chip ("+2 others are watching").
-6. **Watch Live**: optional toggle; shows latency; auto-falls back to VOD mode if the uplink governor says no.
-7. **Connections tab**: every live peer, what it's streaming, bytes sent/received, revoke/kick button, and a per-peer rate limit (`limitViewer(peerId, kbps)`).
-8. **Settings**: shared folder picker, publish toggle, allowed/blocked list, auto-approve rules (only for contacts), uplink cap, cache size & clear, STUN server list, **TURN server (empty by default, user-supplied only)**, signaling strategy (Auto/MQTT/Nostr/Manual) + relay diagnostics, discovery shard debugging, debug overlay, export logs, factory reset.
-9. **Autonomy guarantees**: tray/foreground-service presence so the host stays visible while publishing; heartbeat keeps the listing alive; viewers auto-retry with backoff; a "device was offline" state on stale results (never a hard error).
-
-Explicitly **out of scope for v1**: offline playback of content you don't have cached, comments/likes, transcoding to other containers, live camera from the owner, TURN we run, iOS/Linux/macOS, web.
-
----
-
-## 7. BUILD PHASES (each with a hard Definition of Done)
-
-**Phase 0 — Feasibility spikes (do this before writing app code). 3–5 days**
-Spikes, each a throwaway branch with a written result:
-1. H.264 **hardware** encode + 720p30 send from Android → Windows, and Windows → Android, with `getStats` proving sustained bitrate.
-2. Sustained DataChannel throughput on: same-LAN, 100 Mbps, and a throttled `tc`-shaped link. Record MB/s per platform.
-3. `bufferedAmount` polling backpressure correctness under a 2 GB transfer; confirm the desktop event bug and that polling is sufficient.
-4. MQTT-over-TLS signal round trip incl. trickle candidates, through 3 brokers with failover; measure announce→connect latency.
-5. NAT matrix test: home NAT, CGNAT (use a container/cloud VM), symmetric NAT (use `otsturn`/a NAT appliance or a cloud double-NAT). Produce an honest **connectability matrix** to ship in-app.
-6. Confirm audio playback on Windows desktop; write a fallback if broken.
-DoD: `docs/adr/0001..000N` written, numbers measured, go/no-go per decision. **Kill or re-plan here, not later.**
-
-**Phase 1 — P2P core, 1:1.** Identity, protocol codec, `PeerMesh` with a serialized negotiation queue, Manual + MQTT signaling, ICE/STUN, a data channel, `BYE`, keepalive, reconnect, stats. DoD: two Windows machines + Android↔Windows exchange a 1 GB file with resumable transfer, verified by hash, across a simulated network flap.
-
-**Phase 2 — Library & index.** Folder pickers (SAF tree on Android, arbitrary dir on Windows), watchers, BLAKE3 index, metadata parse, thumbnails, SQLite, paging API. DoD: 20 000 items indexed in under 60 s on a mid Android phone without ANR; a deleted/renamed file is reconciled within 15 s.
-
-**Phase 3 — Discovery + access control.** Announce/shard/gossip, query bloom, ranking, `REQUEST_ACCESS`/`GRANT` HMAC tokens, ACL UI, revoke, block, `onConnection` audit. DoD: with the app running on 10 simulated nodes, a cold-start node finds 8/10 within 60 s; an unapproved node provably receives **zero** media bytes (assert with a test).
-
-**Phase 4 — VOD streaming.** Manifest, range protocol, chunk pipeline, cache, progressive playback, seek, resume, prefetch, download. DoD: a 4K 2-hour file starts in < 1.5 s on LAN, seek p99 < 1.2 s, zero memory growth over a 1-hour session (heap snapshot before/after).
-
-**Phase 5 — Multi-peer live mode.** `LiveTranscodeSource`, simulcast ladders, `UplinkGovernor`, per-viewer rate limits, kick/revoke-under-load, Watch Live UI. DoD: one host → 6 simultaneous 720p30 viewers on a 20 Mbps uplink, all in sync, host CPU < 60 % on a 2019 mid laptop, 1080p60 **off** by default; when cap is exceeded, demotion+queueing behaves exactly per the rules and is covered by unit tests.
-
-**Phase 6 — Hardening & autonomy.** Flutter lifecycle (background/foreground, process death, sleep), Windows tray + autostart + single-instance, Android foreground service + Doze, Android 15/16 permission edge cases (SAF revocation, scoped storage), i18n, accessibility, crash-safe local storage, settings import/export, packaging (MSIX for Windows, signed AAB for Android), telemetry-free diagnostics bundle, user docs.
-DoD: 24 h soak test on both platforms with no leaked PeerConnections (assert connection count returns to baseline), no crash, no battery complaint above 8 %/h while idle-publishing.
-
-**Phase 7 (optional / later).** Viewer-to-viewer cache sharing (make a cached item re-shareable), local LAN auto-discovery UI, user-supplied TURN wizard, libp2p-Kademlia as an alternative directory, "handoff" so a host can hand its listing to another node when going offline.
-
----
-
-## 8. QUALITY GATES (CI)
-
-- `dart analyze --fatal-infos`, strict analysis options, 100 % coverage on `vault_protocol`, `vault_identity`, `vault_delivery/UplinkGovernor`, chunk protocol.
-- Golden tests for every wire message (encode → decode → byte-identical, plus "rejects unknown version/signature").
-- Fuzz the protocol decoder (`libFuzzer` via `dart_fuzz` or `fuzzly`).
-- Integration tests in `integration_test` on both Android and Windows runners.
-- `tools/interop_harness`: pion/webrtc as the **other** side, plus `bwe-test` and pion `vnet` for scripted bandwidth/loss/RTT scenarios. Every spike claim in Phase 0 must be reproducible from this harness.
-- Perf budgets enforced by benchmark tests: index throughput, chunk throughput, heap high-water, encode CPU.
-
----
-
-## 9. RISK REGISTER (top 8, with mitigations already chosen)
-
-1. **Symmetric NAT / CGNAT blocks many peer pairs.** → STUN-only by design; in-app honest explanation; user-supplied TURN field; LAN-first; document the residual limitation instead of pretending it away. (Accepted by constraint #1.)
-2. **Multi-peer uplink saturation.** → governor + simulcast + hard 6-viewer cap + queueing (3.3).
-3. **Desktop `setParameters` ignores encoding changes.** → recreate the transceiver on layer switch; wrap in one API so the workaround is one place. Re-test on every plugin bump.
-4. **Missing `bufferedAmountLow` on desktop.** → polling backpressure everywhere (3.4). Never trust the event alone.
-5. **Cold-start discovery failure** (no peers ⇒ hear nothing). → 2-hop epidemic re-broadcast + beacon topics; 60 s discovery SLA tested with 10 nodes (Phase 3).
-6. **Public relay abuse / outage / rate limits.** → 3+ strategies behind one interface, endpoint lists hot-configurable (settings), announcement redundancy 2, degrade gracefully to Manual mode.
-7. **HW codec heterogeneity on Android.** → runtime capability probe at startup, per-rung fallback ladder, forced SW codec list only as last resort.
-8. **Plugin churn** (flutter_webrtc moves fast; noted Windows crashes in 1.6.2 hotfixes). → pin exact versions, wrap the plugin in `vault_net`/`vault_delivery` behind our own interfaces so an upgrade touches 2 files, and keep the pion interop harness green.
-
----
-
-## 10. WORKING STYLE FOR YOU (the AI)
-
-1. **Before any feature code**, produce: the ADR set, the final `pubspec.yaml` dependency list with exact pinned versions and a one-line justification each, the protocol message catalogue, and the directory/file tree with one-line responsibilities.
-2. **Build Phase 0 spikes first and report real measured numbers.** Do not fabricate benchmarks. If a spike fails, say so and propose a plan change before writing more code.
-3. Implement in **thin vertical slices that run on both platforms from day one** (no "I'll do Android later"). Every slice ends with a command the user can run.
-4. Write **pure Dart with interfaces** for everything that touches the OS or the plugin; keep platform channels thin and isolated in `apps/vault/lib/platform/`.
-5. Every non-obvious decision gets an ADR. Every magic number in §3 gets a named constant with a comment.
-6. Prefer boring, well-understood, heavily-used libraries. No experimental crates in the data path.
-7. Never introduce a hosted service, an API key, an account, or a `TODO(server)` in any form. If a feature seems to need one, implement the peer-to-peer or user-supplied version, or cut it and say why.
-8. End every response with: what you built, how to run it on Android and on Windows, the measured numbers, and the next single best step.
-
----
-
-## 11. SUCCESS CRITERIA (definition of "done" for the whole project)
-
-- Install the app on an Android phone and a Windows PC; no account, no server, no configuration.
-- Owner picks a folder, drops 50 videos in it, taps **Publish**.
-- A second user on a different network finds them by search within ~60 s, gets approved with one tap, and streams any video with a working seek bar at 720p within 3 s.
-- A third and fourth user do the same simultaneously; the host stays responsive, the uplink never exceeds the cap, and the UI explains any degradation.
-- Pull the host's Wi‑Fi for 30 s: both apps recover automatically with no user action and no corrupted state.
-- Revoke access on the host: the viewer's stream dies within 1 s and cannot be resumed.
-- Uninstall and reinstall on the viewer side: no server state is required to keep working; the host never notices.
-- Zero bytes of media or file content transit any relay — proven by an automated assertion in the signaling client.
-
----
-
-### Appendix A — Hard-pinned starting dependencies (verify latest versions before locking; record the check)
-`flutter`, `flutter_webrtc ^1.6.2`, `flutter_riverpod` + `riverpod_generator`, `go_router`, `drift` + `sqlite3_flutter_libs`, `blake3` (pure-Dart port), `mqtt_client` (or `dart_mqtt`), `nostr` Dart SDK, `protobuf`/`msgpack_dart`, `cryptography`/`ed25519_edwards` + `cryptography_flutter`, `freezed`/`json_serializable`, `video_player` + `video_player_media_kit`/`media_kit` (Windows), `window_manager` (tray/desktop), `flutter_windowmanager`, `workmanager` (Android), `path_provider`, `crypto` (built-in), `logging`, `sentry` — **NO, omit Sentry: no telemetry**, `intl`.
-
-### Appendix B — Numbers cheat sheet
-- STUN: Google / Cloudflare / Nextcloud (public, free, no account).
-- Announce interval 30 s · TTL 90 s · sweep 15 s · gossip 60 s · 5 fan-out · 200 entries/msg.
-- Access prompt countdown 60 s · revoke propagation < 1 s.
-- Chunk 256 KiB · read-ahead 512 KiB · high-water 512 KiB · low-water 256 KiB · poll 50 ms.
-- Backpressure poll 50 ms · stats poll 1 s · IDR 2 s · PLI throttle 500 ms, max 3.
-- Layers 300/800/2500/4500 kbps · overhead ×1.17 · cap 70 % of measured uplink · max 6 viewers.
-- Thumbnails 320 px q70, 22 % of duration, concurrency 2.
-- Cache 2 GB desktop / 512 MB mobile, LRU.
-- Windows watcher event + 5 s reconcile · Android SAF poll 15 s.
+# Vault build plan
+
+Reviewed 2026-10-18. This is the authoritative product build plan. The
+[research report](reports/Vault%20prebuild%20architecture%20audit.md) explains the
+evidence and [ADR 0001](docs/adr/0001-prebuild-baseline.md) records this baseline.
+All performance numbers below are targets or initial tunables unless accompanied
+by a reproducible result. Phase0 has initial native probe results. Section6.3
+authorizes real core implementation before the full feasibility matrix is complete.
+Production-path services are experimental; implementation and smoke evidence must
+not be confused with passing the measured definitions of done. See the
+[measured record](docs/spikes/phase0-2026-10-18/README.md) and
+[hotspot decision](docs/adr/0002-phase0-native-findings.md).
+
+The [UI/UX build plan](docs/UI_UX_BUILD_PLAN.md) defines the companion design track:
+Manyverse-inspired patterns, navigation, consent, screen states, platform behavior
+and acceptance criteria. It does not replace this plan's scope or feasibility gates.
+
+## 0. Intention and priority
+
+Build a direct one-to-one messenger for Android and Windows. Each user has a
+protected local identity, explicitly adds verified contacts and exchanges text
+over authenticated direct WebRTC sessions. Conversations and local history are
+the primary experience. Adding a contact permits direct messages, not media access.
+
+Retain the personal photo/video library as a secondary, separately approved
+feature. Owners choose media and explicitly publish; approved viewers browse and
+play original files with seek. Viewer redistribution remains deferred.
+
+The first useful outcome is a bidirectional authenticated conversation, with
+recipient-persisted delivery acknowledgements and history surviving restart.
+Both devices must be running and directly reachable. There is no server mailbox,
+remote push wakeup or automatic offline resend. Already received history is local.
+
+## 1. Hard constraints
+
+1. No backend, cloud storage, account, API key or push service that we operate/pay for.
+2. All media, thumbnails and file bytes travel directly over WebRTC. No TURN in v1,
+   including user-supplied TURN. Reject relay candidates and stop protected transfer
+   if the selected path becomes relayed. Public services carry only allowed signaling.
+3. Identity is a local Ed25519 keypair. Secret keys remain protected on-device;
+   public keys are public. A fresh installation without restored keys is a new identity.
+4. Preserve state through interruption, process death and restart; recovery happens
+   when the OS permits execution and a network path returns.
+5. One visual language and feature model on Android and Windows, with honest OS-specific
+   availability states.
+6. Owner consent is enforced before any private index, poster, manifest, range or live track.
+7. Viewer disconnect stops further transfer and automatic reconnect until explicitly allowed.
+8. No telemetry, analytics, remote crash reporting, licensing endpoint or remote config.
+   Diagnostics are local, redacted, and exported only by the user.
+
+Revocation stops future delivery. Already transmitted, cached, saved or captured content
+cannot be recalled. Do not imply DRM or remote deletion.
+
+## 2. Technology decisions and feasibility boundaries
+
+### 2.1 Flutter, native transport and player
+
+Use installed Flutter 3.47.7 / Dart 3.13.5 for the Android/Windows shell.
+Pin flutter_webrtc exactly to 1.6.2+hotfix.4 for the initial spike; the recorded
+Windows/Linux engine is m150.7871.03. Record Android artifacts separately.
+[Publisher changelog](https://pub.dev/packages/flutter_webrtc/changelog).
+
+Keep one plugin import seam in vault_net/src/webrtc_adapter.dart; consumers use
+our interfaces. Await track/transceiver operations, serialize negotiation, and
+make teardown cancel pending work. Reproduce upstream reports on the pinned build:
+[encoding updates #2210](https://github.com/flutter-webrtc/flutter-webrtc/issues/2210)
+and [buffer callbacks #2206](https://github.com/flutter-webrtc/flutter-webrtc/issues/2206).
+Transceiver recreation is a measured workaround, not an unconditional operation.
+
+Hardware H.264, simulcast, file-to-track audio/video injection, keyframe controls,
+and encoded-frame sharing across connections are hypotheses to test. Never infer
+them from package platform support. A camera demo does not prove file broadcasting.
+Software codec fallback must satisfy measured CPU/thermal budgets or live mode is unavailable.
+
+Windows playback needs an explicit backend; video_player alone has no Windows implementation.
+Evaluate media_kit plus its video/native-library dependencies in the VOD spike.
+VOD exposes ByteRangeSource (readAt, size, cancellation); live mode exposes
+LiveSession (tracks, timeline, lifecycle). They share authorization, not a false
+common byte-stream interface.
+
+### 2.2 Direct WebRTC
+
+Use Unified Plan, maxBundle, required RTCP mux and STUN-only ICE. Public STUN
+endpoints are configurable candidates, not guaranteed services; verify each in Phase 0.
+Record the selected candidate pair and handle network changes with fresh ICE generations.
+mDNS behavior must be tested in the native plugin; it does not hide public/reflexive
+addresses from an observer of clear SDP. If no direct route exists, say so without
+claiming a certain NAT type. Manual signaling cannot repair an unreachable path.
+[ICE](https://www.rfc-editor.org/rfc/rfc8445.html),
+[TURN relays data](https://www.rfc-editor.org/rfc/rfc8656.html).
+
+### 2.3 Signaling
+
+Define an injectable SignalingStrategy with inbound messages, publish, subscribe,
+connected state and endpoint diagnostics. MQTT first, Manual as a test oracle and
+fallback; Nostr is a separately gated adapter.
+
+MQTT5 requires a compatible client (candidate mqtt5_client 5.1.0, not MQTT3 mqtt_client).
+Public EMQX/Mosquitto endpoints are testing infrastructure without our availability
+guarantee. Verify current TLS/WSS paths and MQTT CONNACK/SUBACK/PUBACK behavior
+before inclusion; the previous Eclipse path is unverified. Use bounded reconnect
+backoff with jitter, endpoint redundancy and application-level deduplication.
+QoS 0 is suitable for presence/stats. Trickle candidates require application
+acknowledgment/retry/idempotence or a repeated final complete candidate set;
+losing the only usable candidate can prevent connection. State-changing exchanges
+also require acknowledgment, retries and idempotence. Never retain private messages.
+
+All addressed SDP, candidates and private control must be end-to-end encrypted
+to an encryption key bound to the verified Vault identity. Select an established,
+reviewed construction/library and vectors in a Phase 0 ADR; no ad hoc crypto.
+TLS to a public broker is insufficient. Sign the complete inner Vault envelope.
+
+Nostr outer events use JSON and a separate secp256k1 Schnorr transport identity,
+bound by a Vault-signed key binding. If selected, use exact NIP-44 v2 with its
+required keys and vectors. Ephemeral events may still be logged by relays.
+[NIP-01](https://github.com/nostr-protocol/nips/blob/master/01.md),
+[NIP-44](https://github.com/nostr-protocol/nips/blob/master/44.md).
+
+Manual mode exchanges the full compressed gathered offer and answer via text or
+bounded multipart QR. A short phrase verifies a transcript; it cannot replace
+arbitrary SDP without a rendezvous service. Peers still need a viable network path.
+
+Enforce a typed signaling allowlist, individual size limits and total rate/byte
+limits. Reject index, thumbnail and file payload kinds. A byte budget alone cannot
+prove media exclusion. Test signaling schema boundaries and direct transport paths separately.
+
+### 2.4 Directory/search
+
+Public listing is an explicit opt-in. Explain that display name, selected tags,
+coarse counts, stable identity and presence become public metadata. Never publish
+filenames, paths, posters, ACLs, IP hints, grants or secrets.
+
+For the bounded pilot, subscribe to the complete bounded presence namespace over
+a common working endpoint, validate signed records, and search the local cache.
+Initial heartbeat 30 s, origin-signed expiry <=90 s, expiry sweep 15 s. Only the
+origin may refresh a record. Deduplicate, reject stale sequence/epoch updates,
+limit entries/bytes/signature work/responses/prompts, and label partial results.
+
+Do not derive a text-query shard from a hash of nodeId. Sharding, query Bloom
+filters, cross-endpoint bridges and gossip-based scaling require separate design
+and load evidence. Redundant brokers are not automatically federated. Topic names
+do not create bootstrap nodes. If gossip is tested, batches contain <=32 records,
+preserve original signatures/expiry and have bounded hops and aggregate budgets.
+
+Pilot target: with ten online opted-in nodes sharing a reachable broker, a new node
+finds >=8 within 60 s. Test disjoint endpoints, outage, spam, duplicate/replayed
+records and cold start. This is not a global Internet discovery SLA.
+[Public broker limitations](https://test.mosquitto.org/),
+[EMQX public visibility](https://www.emqx.com/en/mqtt/public-mqtt5-broker).
+
+### 2.5 Identity, authorization and revocation
+
+Store Ed25519 identity plus separately bound encryption keys through protected OS
+storage adapters. Freeze key derivation, nodeId encoding, rotation and backup policy
+in an ADR. QR/safety numbers authenticate a key; display names do not.
+
+Before protected access, verify a fresh peer challenge bound to the signed SDP,
+DTLS fingerprints, expected peer and session. A self-asserted DC_HELLO nodeId is insufficient.
+Media authorization states are unauthenticated, authenticated/no grant, approved,
+revoked and blocked. Before media approval, allow only bounded handshake/access
+requests and direct messages from explicitly added verified contacts. Messages
+confer no media grant. Rate-limit owner prompts across rotating identities as
+well as per peer.
+
+Owner alone keeps a random 32-byte HMAC minting key. Never transmit it. A grant
+contains version, ownerId, viewerId, grantId, exact resource scope/actions, issue
+and expiry times, and a persisted owner-controlled authorization epoch. MAC an
+unambiguous domain-separated canonical encoding. Return the grant/MAC only.
+Check identity, MAC, scope, expiry, epoch, revoked state and block state before
+every protected operation. Full ACLs stay local.
+
+Persist revocation before cancelling reads/queues and closing sessions. Target
+owner scheduling stop and affected session closure within 1 s; measure viewer
+notification separately under network delay/loss. Replayed grants must fail after
+restart, reconnect, resume and key rotation. A lost remote notice cannot defeat
+local enforcement. Already received content is outside revocation.
+[HMAC](https://www.rfc-editor.org/rfc/rfc2104.html),
+[Ed25519](https://www.rfc-editor.org/rfc/rfc8032).
+
+## 3. Transport, storage and resource budgets
+
+### 3.1 Data channels and chunking
+
+Use three channels on one association:
+- Reliable ordered critical control: authentication, access, manifests, requests,
+  cancellation, resume, errors and acknowledgments.
+- Reliable ordered bulk: file fragments.
+- Unordered zero-retransmit ephemeral messages: disposable stats/heartbeats and bounded gossip.
+
+Channels share congestion control; separate channels do not guarantee control latency.
+Integrity/cache chunks are 256 KiB, fragmented into messages whose TOTAL serialized
+size is <=min(16 KiB, negotiated max-message-size), including headers.
+Treat SDP max-message-size=0 as unlimited and omission as64 KiB when computing
+that bound; a zero value does not prohibit messages. Carry session,
+request and content-generation IDs, chunk/fragment indices, lengths and digest references.
+Bound allocation, reassembly bytes/time, outstanding requests and retries. Cancel old
+seek generations. Authenticate chunk digests in the protected manifest; a received
+hash alone is not a trusted reference. Retry corruption at most twice, then fail clearly.
+
+Initial read-ahead 512 KiB/session and prefetch two chunks are tunable, not promises.
+Backpressure MUST poll await channel.getBufferedAmount(); the bufferedAmount property
+is cached and can remain stale when callbacks are missing. Start at high-water512 KiB,
+low-water256 KiB, poll50 ms, with local enqueue accounting and per-peer/global bounds.
+Cancel timers on teardown and handle native failures. Benchmark/tune before freezing:
+a strict 512 KiB/50 ms refill policy can itself limit throughput to about10 MiB/s.
+[Exact plugin implementation](https://raw.githubusercontent.com/flutter-webrtc/flutter-webrtc/v1.6.2%2Bhotfix.4/lib/src/native/rtc_data_channel_impl.dart),
+[RFC8831](https://www.rfc-editor.org/rfc/rfc8831.html),
+[message-size negotiation](https://www.rfc-editor.org/rfc/rfc8841.html).
+
+### 3.2 VOD playback and indexing
+
+VOD sends original bytes without transcoding. Transport, hashing and decoding cost
+CPU; source bitrate/container/codec and storage determine startup and seek latency.
+A live quality ladder cannot lower original-file VOD bitrate.
+
+Prove a bounded progressive cache plus loopback HTTP Range feed or native seekable
+adapter on BOTH platforms. Handle MP4 initial/tail moov, sparse cold seeks, cancellation,
+unsupported/corrupt codecs, audio and cache eviction. A loopback-only playback server
+is local plumbing, never a remotely hosted backend. Default cache budgets: desktop2 GiB,
+mobile512 MiB, user configurable.
+
+Use local SQLite; candidates current Drift/SQLite3 do not require obsolete
+sqlite3_flutter_libs. Android source handles are SAF content URIs, not filesystem paths:
+persist grants, use ContentResolver descriptors, test random access, revoked permission,
+provider latency, moved/deleted items and non-seekable sources.
+
+Treat prefix BLAKE3 as a provisional fingerprint, never a globally unique or trusted
+content ID. Bind immutable media generations to full verified hashes or collision-safe
+local IDs; maintain per-chunk hashes. Metadata, thumbnails and hashing run off the UI
+thread with bounded work. Short-circuit unchanged files using provider identity/size/mtime
+where trustworthy; reconcile changes. Choose a tested BLAKE3 implementation before locking.
+
+Stage indexing budgets: enumerate/basic records first, then metadata, then thumbnails,
+then full hashes. The former20k-items/60s goal cannot include guaranteed hashes/posters:
+20k one-MiB prefixes alone require19.53 GiB reads (333.3 MiB/s for60s).
+Record each stage's dataset/storage/device and ANR/memory behavior.
+Windows watcher plus reconciliation and Android incremental reconciliation must scale;
+do not promise a full20k-item SAF scan every15 s. Fifteen seconds is an active-mode
+small-change target to test. Background freshness is governed by the OS.
+
+### 3.3 Optional live mode and uplink governor
+
+Use H.264 where supported; verify actual encoder, profile, timestamp/audio injection,
+thermal behavior and sender capacity. Do not assume one encoding is shared across peers.
+If sync is offered, specify leader clock, seek/play controls, drift tolerance and resync.
+
+Initial normalized720p ladder: low320x180@15fps/300kbps (scale4),
+mid640x360@30fps/800kbps (scale2), high1280x720@30fps/2500kbps (scale1).
+Optional1080p is separately gated. Count EVERY active simulcast encoding per peer.
+RTP live PLI/keyframe recovery is unrelated to byte chunk boundaries; use only APIs
+proven available. Fixed CBR,2s IDR and exact codec controls are targets to validate.
+
+Keep UplinkGovernor pure and deterministic. Distinguish conservative path goodput
+(bytes/monotonic elapsed time) from total host uplink. Best RTT is not bandwidth.
+Use user cap and observed aggregate rates; initial automatic cap is70% of a justified
+estimate. Do not probe an unapproved viewer by sending media or unbounded dummy traffic.
+
+Planning example: (2.5+0.096)*1.17=3.03732Mbps per high viewer.
+Six cost18.22392Mbps; a20Mbps uplink at70% gives14Mbps, at most FOUR high
+viewers before extra overhead. Six require>=26.034Mbps measured before margin.
+Six is a hard session ceiling, not a universal target. Admit lower layers or queue
+according to cap, then demote worst observed paths, never silently exceed the cap.
+Measure actual wire rates and CPU; VOD has a separate byte-scheduling budget.
+
+### 3.4 Lifecycle and availability
+
+Windows: tray, optional autostart, single instance, sleep/resume and crash-safe state.
+Android: select a valid foreground-service type for active transfers and idle publishing
+separately, with required permissions and user-visible start/stop. Do not label hosting
+as mediaPlayback to evade limits. Android15+ dataSync/mediaProcessing have background
+time budgets; connectedDevice applicability needs a documented use-case assessment.
+Doze can suspend network and defer WorkManager; a15min periodic job is not a
+continuous-presence guarantee. Wake locks do not bypass these restrictions.
+Android16 adds long-worker quota considerations.
+
+Phase0 must establish supported availability modes on a physical phone: screen-off,
+forced Doze, process death, user stop, reboot, background-start denial, service timeout,
+permission loss and recovery. Expose awake/publishing/suspended/offline states honestly.
+Keep WorkManager for deferred maintenance. Do not automatically bypass user battery policy.
+[FGS types](https://developer.android.com/develop/background-work/services/fgs/service-types),
+[timeouts](https://developer.android.com/develop/background-work/services/fgs/timeout),
+[Doze](https://developer.android.com/training/monitoring-device-state/doze-standby).
+
+## 4. Repository and dependencies
+
+One app under apps/vault plus vault_identity, vault_protocol, vault_signaling,
+vault_net, vault_directory, vault_media_index, vault_delivery, vault_player, vault_ui.
+Layering: ui -> directory/delivery/player -> net/signaling/media_index -> protocol/identity.
+Identity/protocol are pure Dart with zero Flutter imports. OS adapters live behind
+interfaces; no global mutable services outside DI. Hash/read/thumbnail workers must
+not block the UI isolate.
+
+The repository contains the native Flutter app, nine service/UI package
+boundaries, a separate browser design study, Android/Windows feasibility probes
+and a pinned Go/Pion interop harness. Experimental core services are implemented
+under section6.3; the [file tree](docs/FILE_TREE.md) separates those sources from
+remaining acceptance evidence and deferred extensions.
+
+Root pubspec pins Melos8.9.0 and very_good_analysis11.0.0, Dart>=3.13.0;
+pubspec.lock records resolved tooling. Configuration is in pubspec, per current Melos.
+apps/vault and all nine packages are explicit members with resolution:workspace.
+Use dart run melos, not an unpinned global install. Add real test/codegen/coverage
+commands only when their targets exist. Analysis of an empty scaffold is not feature validation.
+
+Before feature code, freeze the exact jointly resolved dependency set with justifications,
+lockfile/native artifact versions, licenses and both-target plugin builds.
+The app/service graph is pinned in the root workspace lockfile.
+Initial spike pin: flutter_webrtc1.6.2+hotfix.4. Exact interface pins and remaining
+dependency/license gates are recorded in [dependency review](docs/ops/DEPENDENCIES.md).
+The default app now composes real core services; the separate design study is
+not transport evidence. Do not add missing blake3, Dart2-only
+flutter_windowmanager, EOL sqlite3_flutter_libs or telemetry.
+
+## 5. Protocol catalogue and freeze requirements
+
+Use ONE deterministic inner binary profile chosen by ADR and golden vectors before
+Phase1; default proposal deterministic CBOR RFC8949 section4.2.1. MessagePack requires
+an equally explicit profile if chosen instead. Nostr outer JSON is a transport exception.
+Wire header: one-byte version, two-byte type; Ed25519 public key32 bytes and signature
+64 bytes. Sign domain-separated header/body excluding signature. Specify exact field
+types/order/encoding, duplicate-key rejection, nesting/length limits and integer bounds.
+
+Envelope includes sender, intended recipient/broadcast scope, messageId, sessionId,
+issuedAt, expiresAt, and ICE generation where relevant. Deduplicate across transports
+by authenticated(sender,messageId) for the signed acceptance window; bound caches and
+persist grant/revocation replay defenses. Initial clock skew allowance120 s is not a
+replacement for replay prevention. Reject mismatched identities/sessions, unknown
+versions/types, invalid signatures and expired records before side effects.
+
+Signaling catalogue: HELLO, OFFER, ANSWER, CANDIDATE, ANNOUNCE, BYE; QUERY and
+bridging are deferred. Grants/private ACLs never travel as public directory records.
+Data-plane catalogue: DC_HELLO/challenge proof; REQUEST_ACCESS ->
+ACCESS_RESULT{allowed,grant?,expiresAt?,reason?}; INDEX_REQUEST/INDEX_PAGE with
+bounded paging; MANIFEST_REQUEST/MANIFEST with content generation and authenticated
+chunk digests; RANGE_REQUEST/RANGE_FRAGMENT with request IDs, offsets, bounds and
+fragment framing; CANCEL, RESUME, ERROR/ACK; optional PLAY_LIVE/LIVE_READY; STATS_PUSH,
+bounded GOSSIP, BYE. Define exact schemas and rejection vectors in a protocol ADR.
+A catalogue is not yet an interoperable frozen byte specification.
+
+## 6. Functional scope
+
+Verified local contacts; direct one-to-one text conversations; durable local
+history and unread state; explicit Connect/Disconnect; sending, delivered,
+unconfirmed and received states; manual same-ID retry after uncertain delivery.
+Delivered means the recipient app persisted the message, not that a person read it.
+
+Secondary media features retain folder/import selection, explicit publication,
+opt-in directory, owner approval, paged browse, VOD seek/download and revocation.
+Chat does not require publication or a media grant. Stopping library sharing does
+not stop a messenger-enabled connection; explicit disconnect and revocation can.
+Optional live controls remain feasibility-gated.
+
+Out of v1: camera broadcasting, comments/likes, cloud storage, remote push, TURN,
+viewer redistribution, unsupported platforms, promises to serve from sleeping devices.
+Downloaded/cached content follows explicit user save choices and cache budgets.
+
+### 6.1 UI/UX design track
+
+Follow [the dedicated UI/UX build plan](docs/UI_UX_BUILD_PLAN.md). Design journeys,
+responsive specifications and browser/native interface previews before resuming
+Phase0 testing, under the explicit sequencing revision below.
+
+User-approved Quietly personal redesign (2026-10-19): use Chats (default),
+Libraries and My library as the three primary Android/Windows destinations.
+Activity remains a global Requests & transfers utility; Identity & Settings opens
+from the local identity control. See the complete
+[redesign contract](docs/INTERFACE_REDESIGN_PLAN.md). Wide chats pair the contact
+list with timeline/composer; compact screens open one conversation with Back.
+Preserve drafts and useful navigation context through destination changes and
+resize. Keep human fingerprint comparison, authenticated direct connectivity
+and library approval distinct. Publication and public discovery remain separate
+opt-ins. Pending Manual frames remain actionable from Chats and a canonical
+connection-setup utility. No social feed, replication, room/pub servers or extra
+transports are introduced.
+
+Accessibility, localization-safe layouts, privacy boundaries and recovery states
+start with the first wireframes. Phase6 hardens and verifies them, not introduces
+them. UX design/prototype evidence never substitutes for native feasibility or
+authenticated delivery evidence.
+
+### 6.2 Interface-first sequencing revision
+
+User-directed revision, 2026-10-18: build the installable Android/Windows Flutter
+interface first; resume Phase0 testing when the interface is ready for review.
+This supersedes the previous prohibition on native UI implementation before
+Phase0 completion, narrowly for the interface preview.
+
+The native preview may implement shared visual components, navigation, consent
+and failure-state walkthroughs, local media selection/viewing/playback/save, and
+non-secret local UI preferences. Peer identity, connectivity, publication and
+authorization remain explicitly labeled simulations, not production enforcement.
+No production transport/protocol implementation or Phase0 go decision follows
+from an APK, a native UI smoke run, or a successful local media operation.
+
+All existing direct-only, owner-consent, persistence/security and lifecycle
+acceptance criteria remain required before claiming working P2P delivery.
+Do not rerun transport probes as part of this interface task.
+
+### 6.3 Implementation-first sequencing revision
+
+User-directed revision, 2026-10-18: proceed autonomously with the real core
+system, using concurrent implementation slices, before completing the Phase0
+test matrix. This supersedes the Phase0 prohibition on production implementation
+and the interface-only scope restriction in section6.2. It does not pass a gate.
+
+Phase1 is the next implementation phase: identity, protected persistence,
+authenticated/encrypted Manual and MQTT signaling, direct sessions and bounded
+resumable transfer. Integrate media indexing, consent/discovery and VOD in the
+dependent Phase2–4 sequence rather than leaving simulated services in the app.
+Basic runtime smoke checks, deterministic security checks and analysis remain
+required during implementation. Broad physical-device/NAT/firewall, shaped-link,
+lifecycle, soak and performance acceptance trials may follow integration.
+
+Phase0 remains open. Implementation completion, smoke success and native builds
+must be reported separately from each phase's measured definition of done.
+Keep the no-backend, direct-only/no-TURN, explicit-consent, protected-storage and
+fail-closed authorization constraints. Optional live remains gated and is not
+part of the core VOD implementation. Do not claim background availability, general
+Internet reachability, release readiness or independent cryptographic review.
+
+### 6.4 Messenger product revision
+
+The user's request to make Vault a messenger supersedes the earlier media-first
+product priority and browse-first navigation, not the security or feasibility
+constraints. Text and acknowledgements use the authenticated reliable control
+channel, never MQTT, public discovery or a relay. The bounded versioned messenger
+schema carries a random message ID, sender timestamp and at most 4096 UTF-8 text
+bytes (canonical base64 on wire); acknowledgements contain only the message ID.
+Session identity supplies sender/recipient association.
+
+Persist incoming messages before acknowledging. Deduplicate by peer and message
+ID across restart; a same-ID retry must not create another received copy.
+Interrupted or timed-out delivery stays unconfirmed, never inferred delivered.
+Local SQLite history is application-private but not encrypted at rest; protected
+identity keys remain in OS storage. Refuse new history when its explicit bound
+is reached rather than silently dropping deduplication records.
+
+Messenger acceptance: exercise two actual authenticated native peers, composer
+send and reverse reply, recipient-save acknowledgements, history after restart,
+disconnect/offline states, same-ID retry, Unicode/byte limits and unread state.
+Verify narrow/wide conversation surfaces and draft retention. Existing media
+consent/revocation checks remain required. No group chat, calls, server mailbox,
+cloud synchronization, push service or unattended/background availability claim.
+
+
+## 7. Build phases and gates
+
+Phase0 - feasibility evidence and remaining acceptance gates. Section6.3 permits
+implementation before this matrix is complete; Phase0 remains open. Each spike
+still needs exact commands, hardware, versions, raw results, limits and go/no-go ADR:
+
+Initial evidence on2026-10-18: exact native plugin builds on both targets; physical
+Android/Windows synthetic direct transfers; resident MP4 Range playback/seeks;
+five-second Android hardware encode; short background dataSync transfer. The
+hotspot needed an experimental local plugin option. These are partial results;
+none establish authenticated P2P VOD, network recovery, sustained encoding or Doze.
+The [result matrix](docs/spikes/phase0-2026-10-18/README.md) tracks remaining gates.
+
+1. Hardware encode and file audio/video track injection Android<->Windows, encoder
+   evidence, sustained720p30 and cleanup; real phone required. Optional live may be cut.
+2. DataChannel goodput/memory/control latency on LAN and real shaped100Mbps/loss links.
+3. Native buffer polling, bounded queue/reassembly, cancellation and2GiB transfer integrity.
+4. Authenticated/encrypted MQTT round trip, trickle, retries, endpoint failure and
+   bounded pilot discovery. Verify brokers rather than merely opening their ports.
+5. Direct-connect matrix using documented NAT/firewall topology and observed pairs.
+   Delay/loss is NOT CGNAT/symmetric-NAT emulation. Use a real/test NAT appliance
+   or isolated routing fixture; public cloud VM is optional and not provisioned by default.
+6. Progressive VOD and audio on BOTH platforms, tail-moov MP4, cold seek and source
+   URI permission loss. Prove player/backend adapter before Phase4.
+7. Android lifecycle/FGS/Doze availability modes on physical Android15/16, with service
+   budgets, stops and recovery. This is a core product gate, not Phase6 cleanup.
+8. Crypto/wire/storage/dependency ADRs and adversarial authorization design, plus
+   exact plugin native builds on both targets.
+Phase1 implementation is authorized by section6.3; its acceptance gates remain required.
+Optional live failure may remove live from the first release while preserving core VOD.
+
+Phase1 - identity, authenticated/encrypted manual+MQTT signaling, direct PeerMesh,
+critical control, bounded bulk, stats and restart. DoD:1GiB hash-verified resumable
+transfer Android<->Windows and two Windows devices across a network flap, with
+unauthorized/private-data rejection and relayed-path rejection.
+
+Phase2 - SAF/Windows media sources, staged index, metadata, posters, chunk digests,
+SQLite/paging. DoD: documented20k-item workload, per-stage times/ANR/memory and
+incremental rename/delete/revoked-permission behavior. Targets selected from Phase0 evidence.
+
+Phase3 - bounded opt-in discovery and complete consent UI. DoD: documented10-node
+pilot8/10 in60s plus outage/spam/replay tests; unapproved peer receives zero protected
+index/poster/media bytes. Test owner secret isolation and revoked tokens after restart.
+
+Phase4 - VOD cache/feed/seek/resume/download on both platforms. Initial LAN targets:
+startup<1.5s, seek p99<1.2s for a specified playable4K/two-hour file. Record format,
+cold/warm cache, bandwidth and hardware. One-hour soak must show bounded steady-state
+memory, not literally zero allocation or zero heap fluctuation.
+
+Phase5 - optional live fan-out/governor/sync only after gate. DoD: cap-respecting
+measured viewer count/quality;20Mbps planning case <=four high viewers, six only on
+adequate measured capacity or lower layers. Record actual encoding instances,
+audio/simulcast bytes, thermal/CPU behavior and clock drift. CPU<60% is a target
+for a named baseline machine, not a guarantee for every2019 laptop.
+
+Phase6 - packaging, accessibility/i18n, tray/autostart, lifecycle hardening, crash-safe
+storage and redacted diagnostics. Signed AAB/MSIX use user-owned signing material.
+24h awake/available-mode soak, baseline connection count restored after disconnects,
+bounded memory and measured idle battery against an agreed device baseline.
+OS-suspended intervals are separately reported, not counted as reachability success.
+
+Phase7 - deferred redistribution/delegation, scaling directory, LAN discovery/handoff.
+Any TURN mode requires a separate explicit change to the hard direct-only constraint.
+
+## 8. Quality gates
+
+Strict analysis/format; meaningful pure-Dart protocol/identity tests and golden vectors;
+100% target coverage on protocol, identity, governor and chunk logic once implemented.
+Adversarial malformed/replay/copy-token/scope/epoch/restart tests and bounded fuzzing;
+select a maintained Dart-compatible fuzz harness before promising libFuzzer integration.
+Integration on Android and Windows. Go/Pion other-side interop with pinned go.mod/go.sum,
+plus vnet/link fixtures where applicable. No claim that every hardware codec/battery
+result is reproducible in a Go-only harness: native device tests remain required.
+CI/performance/coverage jobs must be implemented and fail on missing targets.
+
+## 9. Risk register
+
+Direct-only reachability limits; Android background availability; public relay abuse/outage;
+crypto/session binding mistakes; progressive player/container incompatibility;
+SAF provider performance; live native injection/encoder sharing; fan-out uplink/thermal
+limits; plugin/native artifact churn. Each has a Phase0 gate or explicit product limit above.
+
+## 10. Working style
+
+Write decisions and exact dependencies before feature code. Measure, never fabricate.
+Use thin slices that run on both platforms; keep OS/plugin boundaries injectable.
+Named constants for tunables. No operator infrastructure, accounts or telemetry.
+Report what changed, how to verify/run on both targets, measured results and the next
+single best step. Do not present tools-only checks or placeholder directories as finished features.
+
+## 11. Success criteria
+
+Two verified contacts on Android or Windows establish an authenticated direct
+session, exchange text in both directions and see Delivered only after recipient
+persistence. History survives process restart; uncertain sends remain visible and
+can be explicitly retried without duplicate received copies. Disconnect stops
+automatic connection attempts. No server state, relay or operated backend is required.
+
+Secondary media acceptance remains: an available publishing owner explicitly
+approves a viewer, who browses and plays supported original files with seek.
+Network interruption recovery, revocation, typed signaling exclusion and selected
+direct-route checks retain their existing gates. Messenger smoke evidence does not
+pass physical Android/Windows, WAN, lifecycle, soak or release-security gates.
+
+Appendix - tools: run tools/setup/verify-toolchain.ps1 for installation checks,
+tools/setup/test-builds.ps1 for isolated empty Android/Windows builds, and
+tools/setup/test-verifier.ps1 for verifier regressions. See docs/ops/ENVIRONMENT.md.

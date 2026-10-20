@@ -1,0 +1,11 @@
+{
+  "purpose": "Bundled, illustrative walkthrough media only. Not a user's library.",
+  "license": "https://unsplash.com/license",
+  "photos": [
+    {"file": "lake.jpg", "author": "Pascal Debrunner", "source": "https://unsplash.com/photos/a-lake-surrounded-by-mountains-in-the-middle-of-a-forest-0DUkSWVexMw"},
+    {"file": "alpine.jpg", "author": "Clay Elliot", "source": "https://unsplash.com/photos/alpine-lake-below-rocky-mountain-NEHcgImbezE"},
+    {"file": "forest.jpg", "author": "Girma Nigusse", "source": "https://unsplash.com/photos/PYpv2SKNjo0"},
+    {"file": "coast.jpg", "author": "Mitchell Orr", "source": "https://unsplash.com/photos/sunset-over-a-calm-ocean-oapsm7f0byU"}
+  ],
+  "video": {"file": "lake-study.mp4", "source": "lake.jpg", "description": "Locally generated 12-second silent still-image video for real browser play/seek controls; not P2P playback evidence."}
+}

@@ -1,0 +1,37 @@
+{
+  "scenario": "public",
+  "checkedAt": "2026-10-18T14:04:45.032065Z",
+  "client": "mqtt5_client 5.1.0, TLS, MQTT 5, QoS 1",
+  "broker": "public endpoints",
+  "endpoints": [
+    {
+      "endpoint": "broker.emqx.io:8883",
+      "connackMilliseconds": 1683,
+      "connackReason": "MqttConnectReasonCode.success",
+      "connected": true,
+      "subackOk": true,
+      "echoMilliseconds": 298,
+      "echoMatches": true,
+      "publishedEventSeen": true,
+      "passed": true
+    },
+    {
+      "endpoint": "test.mosquitto.org:8883",
+      "error": "HandshakeException",
+      "errorDetail": "HandshakeException: Handshake error in client (OS Error: ",
+      "passed": false
+    },
+    {
+      "endpoint": "test.mosquitto.org:8886",
+      "connackMilliseconds": 846,
+      "connackReason": "MqttConnectReasonCode.success",
+      "connected": true,
+      "subackOk": true,
+      "echoMilliseconds": 269,
+      "echoMatches": true,
+      "publishedEventSeen": true,
+      "passed": true
+    }
+  ],
+  "uncaughtClientErrors": []
+}

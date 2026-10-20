@@ -1,0 +1,25 @@
+﻿{
+    "checkedAt":  "2026-10-18T19:09:02.0711349+08:00",
+    "scope":  "Empty Flutter template only; no WebRTC/player plugins or Vault feature code.",
+    "project":  "C:\\dev\\vault-toolchain-smoke",
+    "checks":  [
+                   {
+                       "command":  "flutter analyze --fatal-infos",
+                       "passed":  true,
+                       "seconds":  13.6,
+                       "output":  "Analyzing vault-toolchain-smoke...                              \nNo issues found! (ran in 10.7s)"
+                   },
+                   {
+                       "command":  "flutter build windows --debug",
+                       "passed":  true,
+                       "seconds":  12.9,
+                       "output":  "Building Windows application...                                    10.9s\n✓ Built build\\windows\\x64\\runner\\Debug\\vault_toolchain_smoke.exe"
+                   },
+                   {
+                       "command":  "flutter build apk --debug",
+                       "passed":  true,
+                       "seconds":  247.5,
+                       "output":  "Running Gradle task \u0027assembleDebug\u0027...                          \nWarning: SDK processing. This version only understands SDK XML versions up to 3 but an SDK XML file of version 4 was encountered. This can happen if you use versions of Android Studio and the command-line tools that were released at different times.\nChecking the license for package Android SDK Build-Tools 36 in C:\\dev\\android-sdk\\licenses\nLicense for package Android SDK Build-Tools 36 accepted.\nPreparing \"Install Android SDK Build-Tools 36 v.36.0.0\".\n\"Install Android SDK Build-Tools 36 v.36.0.0\" ready.\nInstalling Android SDK Build-Tools 36 in C:\\dev\\android-sdk\\build-tools\\36.0.0\n\"Install Android SDK Build-Tools 36 v.36.0.0\" complete.\n\"Install Android SDK Build-Tools 36 v.36.0.0\" finished.\nRunning Gradle task \u0027assembleDebug\u0027...                            241.3s\n✓ Built build\\app\\outputs\\flutter-apk\\app-debug.apk"
+                   }
+               ]
+}

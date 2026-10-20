@@ -1,0 +1,7 @@
+﻿{
+    "checkedAt":  "2026-10-18T19:44:30.3787698+08:00",
+    "scope":  "Synthetic direct WebRTC interop; not production authentication or media delivery",
+    "bytesPerDirection":  33554432,
+    "passed":  false,
+    "error":  "The remote server returned an error: (500) Internal Server Error."
+}

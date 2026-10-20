@@ -63,3 +63,6 @@ spikes/**/out/
 .idea/libraries/
 *.log
 Thumbs.db
+# ---- Phase 0 test broker ----
+tools/mqtt_testbroker/*.exe
+tools/mqtt_testbroker/certs/

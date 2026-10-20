@@ -1,0 +1,13 @@
+name: vault_wire_spike
+description: Throwaway Phase 0 crypto/wire vectors. Pure Dart. Not Vault.
+publish_to: none
+version: 0.0.0
+
+environment:
+  sdk: '>=3.13.0 <4.0.0'
+
+dependencies:
+  cryptography: 2.9.0
+
+dev_dependencies:
+  test: ^1.25.0

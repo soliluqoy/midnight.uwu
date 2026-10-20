@@ -1,236 +1,187 @@
-# Environment — Vault development toolchain
+# Vault development environment
 
-Verified on **2026-10-18** on `DESKTOP-SDAVB2H` / Windows 10 Pro 22H2 (10.0.19045), 8 logical CPUs, 15.9 GB RAM.
+Audited 2026-10-18 on DESKTOP-SDAVB2H, Windows10 Pro22H2 (10.0.19045),
+8 logical CPUs and about16 GiB RAM. This record replaces the earlier blanket
+"0 warnings" readiness claim. Installation, native builds and product feasibility
+are separate checks.
 
-Reproduce with:
+## Reproduce
 
-```powershell
-powershell -ExecutionPolicy Bypass -File tools\setup\verify-toolchain.ps1
-```
+~~~powershell
+dart pub get
+dart run melos bootstrap
+dart run melos run analyze
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\setup\test-verifier.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\setup\verify-toolchain.ps1 -JsonOutput docs\ops\toolchain-verification.json
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\setup\test-builds.ps1
+~~~
 
-Current result: **PASS — 0 failures, 0 warnings.** `flutter doctor` reports **"No issues found!"**
+Verification does not need Administrator. Use -RequirePhysicalAndroid to make
+an absent authorized phone a failure. Default reports it as a warning. Build
+checks generate an isolated template at C:\dev\vault-toolchain-smoke, not Vault.
+The latest [installation JSON](toolchain-verification.json) has26 passing checks,
+including the authorized physical phone, with0 failures and0 warnings. The
+prebuild24-check result is [preserved separately](prebuild-toolchain-verification.json).
+The installation JSON and
+[build JSON](build-verification.json) are the dated evidence; do not infer plugin
+or feature success from an empty-template build.
 
----
+On Windows PowerShell 5.1, Flutter's UTF-8 doctor output must be captured with
+UTF-8 decoding: an OEM console code page such as CP437 corrupts the healthy
+checkmark and causes a false platform failure. The verifier scopes UTF-8 decoding
+to the doctor command and restores the previous console encoding afterward.
+Required Android/Windows components still fail when unhealthy or absent.
 
-## 1. Installed manifest
+## Installed manifest
 
-| Component | Version | Location | Why Vault needs it |
-|---|---|---|---|
-| Flutter | **3.47.7** stable | `C:\dev\flutter` | One codebase → Android + Windows (plan §2.1) |
-| Dart | **3.13.5** | bundled with Flutter | Language + test runner |
-| Visual Studio Build Tools | **2022 17.14.42** (MSVC 14.44.35207) | `C:\Program` | `flutter build windows` requires MSVC (plan §2.1) |
-| Windows SDK | **10.0.26100.0** | `C:\Program Files (x86)\Windows Kits\10` | `windows.h`, `kernel32.lib`, `rc.exe` |
-| CMake | 4.4.4 | `C:\Program Files\CMake` | Windows runner + FFI/native builds |
-| Ninja | 1.13.2 | `C:\Program Files\Ninja` | CMake generator for FFI builds |
-| MSBuild | 17.14 | `C:\Program\MSBuild` | Windows runner build |
-| JDK (Temurin) | **17.0.20.1+1** | `C:\dev\jdk17\jdk-17.0.20.1+1` | Gradle / Android toolchain |
-| Android SDK | platform **36**, build-tools **36.1.0** | `C:\dev\android-sdk` | Android build target |
-| Android NDK | 29.0.14206865 | `C:\dev\android-sdk\ndk` | Native plugin builds |
-| Android platform-tools | 37.0.1 (adb 1.0.41) | `C:\dev\android-sdk\platform-tools` | Device install / debugging |
-| Android Emulator | 37.2.12.0 (build 16428233) | `C:\dev\android-sdk\emulator` | Second Android node for spikes |
-| System image | `android-36/google_apis/x86_64` | `C:\dev\android-sdk\system-images` | AVD `vault36` |
-| Go | 1.27.0 | `C:\Program Files\Go` | `tools/interop_harness` (pion/webrtc, vnet, bwe-test) |
-| clumsy | 0.3 win64 | `C:\dev\tools\clumsy` | Windows link shaping (spikes 2 & 5) |
-| Git | 2.55.0 | `C:\Program Files\Git` | — |
-| 7-Zip | 26.04 | `C:\Program Files\7-Zip` | Archive extraction |
-| WSL2 Ubuntu | WSL v2 | — | `tc netem` on the Linux side |
+| Component | Observed version | Location |
+|---|---|---|
+| Flutter / Dart | 3.47.7 / 3.13.5 | C:\dev\flutter |
+| VS2022 Build Tools / MSVC | 17.14.42 /14.44.35207 | C:\Program |
+| MSBuild | 17.14.60.43110 | Discovered through vswhere |
+| Windows SDK |10.0.26100.0 | C:\Program Files (x86)\Windows Kits\10 |
+| CMake / Ninja |4.4.4 /1.13.2 | PATH, resolved by verifier |
+| Temurin JDK17 |17.0.20.1 | C:\dev\jdk17\jdk-17.0.20.1+1 |
+| Android platform/build-tools |35 and36 /36.0.0 and36.1.0 | C:\dev\android-sdk |
+| Android SDK CMake |3.22.1 | SDK cmake/3.22.1; required by native plugins |
+| NDK (originally installed) |29.0.14206865 | SDK ndk subdirectory |
+| NDK (Flutter runner requirement) |28.2.13676358 | Installed explicitly during this audit; see below |
+| Android CLI |1.0.16625370 | SDK cmdline-tools/latest/bin |
+| ADB/platform-tools |1.0.41 /37.0.1 | SDK platform-tools |
+| Android Emulator |37.2.12.0 | SDK emulator |
+| Emulator image/AVD |Android36 Google APIs x86_64 /vault36 | SDK system-images and user AVD directory |
+| Go |1.27.0 | C:\Program Files\Go |
+| FFmpeg / ffprobe |9.0.1 Essentials | Winget Gyan.FFmpeg.Essentials; developer fixture generation only |
+| Git |2.55.0.windows.5 | C:\Program Files\Git |
+| 7-Zip |26.04 | C:\Program Files\7-Zip |
+| clumsy/WinDivert |0.3 executable plus DLL/SYS present | C:\dev\tools\clumsy |
+| WSL2 Ubuntu/tc |kernel6.18.54.1 /iproute2-6.19.0 | WSL Ubuntu |
+| Local Melos/lints |8.9.0 /11.0.0 | Root pubspec.yaml and pubspec.lock |
 
-`flutter_webrtc` is pinned at **`1.6.2+hotfix.4`** (latest; published 2026-10-07), matching plan §2.1.
+The VS path C:\Program is unusual but functional and was discovered rather than
+assumed. Do not reinstall solely to change its path. JDK and Android SDK user
+variables are read fresh; Flutter's configured JDK is the verified Temurin path.
 
-### Environment variables (user-level, persistent)
+## Actual checks and limits
 
-| Variable | Value |
-|---|---|
-| `JAVA_HOME` | `C:\dev\jdk17\jdk-17.0.20.1+1` |
-| `ANDROID_HOME` / `ANDROID_SDK_ROOT` | `C:\dev\android-sdk` |
-| `PUB_CACHE` | `%LOCALAPPDATA%\Pub\Cache` |
-| `PATH` additions | `C:\dev\flutter\bin`, `C:\dev\jdk17\jdk-17.0.20.1+1\bin`, `C:\dev\android-sdk\cmdline-tools\latest\bin`, `C:\dev\android-sdk\platform-tools`, `C:\dev\android-sdk\emulator`, `C:\dev\tools` |
+- flutter doctor -v: Android and Windows healthy; no doctor issues.
+- Root dependency resolution, local Melos bootstrap and strict analysis passed.
+- Verifier regression assertions:9 passed. A separate negative run rejected a
+  deliberately missing required clumsy installation with nonzero exit status.
+- Empty Windows debug template: first build passed in59.4s; recorded rerun12.9s.
+- First Android debug template FAILED in309.4s because the default runner needed
+  NDK28.2.13676358 while only29 was present. After explicit installation the APK
+  build passed in247.5s; see build-verification.json. Gradle also installed its
+  exact Build-tools36.0.0 requirement; installer/verifier now include36.0 and36.1.
+  The initial failure is why file/doctor checks alone were insufficient.
+- Go compiler/runtime smoke: go test crypto/ed25519 passed in15.996s.
+- Actual tc netem accepted100Mbit,5ms,1% loss inside a disposable WSL network
+  namespace. This did not shape ordinary host/WSL traffic and is not a NAT test.
+- Emulator -accel-check: WHPX installed and usable. Headless vault36 cold boot
+  reached sys.boot_completed=1; Android16/API36/x86_64 were read through adb.
+  See emulator-verification.json. This is not physical-hardware validation.
+- APK install and rendering eventually passed on the emulator. am start -W
+  initially timed out after12.118s, but ActivityTaskManager logged Fully drawn
+  at17.648s; see android-runtime-verification.json. Cold software rendering is
+  slow and unsuitable for product performance claims. The temporary test app
+  was removed and the emulator stopped after checking.
+- Physical Xiaomi13TPro (23078PND5G, MT6985), Android16/API36 and HyperOS3.0.301
+  is attached and authorized. Native hardware encoding, direct synthetic transfers,
+  resident-file playback/seeks and a short background FGS transfer now have evidence.
+  See the [Phase 0 record](../spikes/phase0-2026-10-18/README.md) for precise limits.
+- clumsy driver files exist; live elevated capture/effect calibration is untested.
+- The initial WebRTC/player probes have Android/Windows evidence. The authorized
+  implementation-first core now composes real app services; new runtime/build
+  observations are recorded in the app README, separately from Phase0 evidence.
+  Broad network, source-provider, sustained-load and lifecycle/Doze trials remain open.
 
-`flutter config --jdk-dir` is **pinned** to our Temurin JDK. This matters — see pitfall #4.
+The user enabled Windows Developer Mode, but this token still cannot create
+plugin symlinks (error1314). The probe uses validated project-local junctions;
+no machine policy was changed. Its dependency wrapper handles that specific
+post-resolution failure, then native builds use --no-pub.
 
----
+## New build mismatch found and fixed
 
-## 2. Emulator capability report
+Flutter3.47.7's generated Android runner references default NDK28.2.13676358.
+The newer SDK manager wrapper delegates to android.exe and cannot interpret the
+semicolon package IDs Gradle uses for auto-install. Installing only the newer NDK29
+does not satisfy a version-specific NDK request. Explicit installation:
 
-Required reading before starting Phase 0.
+~~~powershell
+& C:\dev\android-sdk\cmdline-tools\latest\bin\android.exe sdk install --sdk=C:\dev\android-sdk ndk/28.2.13676358
+~~~
 
-```
-$ emulator -accel-check
-accel: 0
-WHPX(10.0.19045) is installed and usable.
-```
+The installer and verifier now include28.2 alongside29. Avoid editing Flutter's SDK
+or forcing a different NDK simply to hide the missing required package.
 
-**Hardware acceleration works.** Booting AVD `vault36` logs:
+## Link shaping
 
-```
-WHPX on Windows 10.0.19045 detected.
-Windows Hypervisor Platform accelerator is operational
-```
+The clumsy launcher now requires the actual peerIPv4, uses documented0.3 lag/drop
+flags and a finite timeout. Inspect without elevation or packet capture:
 
-Boot results:
+~~~powershell
+tools\netem\clumsy-profile.ps1 -PeerAddress 192.0.2.1 -Profile lossy -DryRun
+~~~
 
-| Property | Value |
-|---|---|
-| Android release | **16** |
-| SDK level | **36** |
-| ABI | `x86_64` |
-| Cold boot to `sys.boot_completed=1` | **~75 s** |
-| adb serial | `emulator-5554` |
+Profiles are lan, broadband, mobile and lossy. They apply delay/loss, not bandwidth
+or CGNAT. Delay is per direction. A real run needs elevation and affects only
+matching peer UDP for the timeout. Use tc for a calibrated cap on traffic actually
+traversing the WSL harness interface:
 
-Launch command used:
-
-```powershell
-C:\dev\android-sdk\emulator\emulator.exe -avd vault36 -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect
-```
-
-### The blocker: no hardware H.264 encoder on the emulator
-
-```
-$ adb shell "grep -h 'avc.encoder' /vendor/etc/media_codecs*.xml"
-<MediaCodec name="c2.android.avc.encoder" type="video/avc" update="true">
-```
-
-`c2.android.avc.encoder` is the **software** (CPU) encoder. There is **no** `c2.qcom.*` / `c2.mtk.*`
-hardware AVC encoder on this x86_64 image, and no `ro.hardware.gralloc` value.
-
-**Consequence for Phase 0:** Spike 1 — *"H.264 **hardware** encode + 720p30 send"* — **cannot be
-validated on the emulator.** Plan §3.1 makes hardware encode the policy and Risk 7 expects
-heterogeneity, so this needs a **physical Android device** over USB with USB debugging enabled.
-
-Everything else in Phase 0 is fine on the emulator:
-
-| Spike | Emulator usable? |
-|---|---|
-| 1 — H.264 HW encode 720p30 | **No — needs a physical device** |
-| 2 — DataChannel throughput | Yes |
-| 3 — `bufferedAmount` backpressure | Yes |
-| 4 — MQTT-over-TLS failover | Yes |
-| 5 — NAT matrix | Partly; real CGNAT still needs a cloud double-NAT (plan §7.5) |
-| 6 — Windows desktop audio | Yes (Windows side only) |
-
----
-
-## 3. Pitfalls hit while installing (each cost real time)
-
-These are reproduced as guards in `tools/setup/install-toolchain.ps1`.
-
-**1. Visual Studio silently truncated its install path.**
-Passing `--installPath 'C:\Program Files (x86)\...\BuildTools'` as a bare argument split on the
-space. The installer reported **exit code 0 / "Successfully completed"** while installing the
-*entire* toolchain to `C:\Program`:
-
-```json
-"installationPath": "C:\\Program",   // vswhere
-```
-
-Detect with `vswhere -all -products * -format json | findstr installationPath`.
-Fix: use a path with no spaces (`C:\VSBuildTools`) or pass `"--installPath=$path"` as one token.
-
-**2. The Android CLI splits package lists on space, not `;`.**
-`platforms;android-36` became four bogus packages:
-
-```
-Package build-tools not found.  Package 36.1.0 not found.
-Package ndk not found.  Package 29.0.14206865 not found.
-```
-
-The new `android.exe` CLI wants **slash-separated** ids:
-
-```
-platform-tools
-platforms/android-36
-build-tools/36.1.0
-ndk/29.0.14206865
-emulator
-system-images/android-36/google_apis/x86_64
-```
-
-The legacy `sdkmanager` still understands `;` for *listing*; the two do not agree.
-
-**3. The Adoptium download is a ZIP, not an MSI.**
-`https://api.adoptium.net/v3/binary/latest/17/ga/windows/x64/jdk/hotspot/normal/eclipse`
-returns `OpenJDK17U-jdk_x64_windows_hotspot_17.0.20.1_1.zip`. Saving it as `.msi` and calling
-`msiexec` gives **exit code 1620**. Extract the zip instead.
-
-**4. A stale inherited `JAVA_HOME` wins over the registry.**
-The parent process carried `JAVA_HOME=C:\Program Files\Eclipse Adoptium\jdk-17.0.20.101-hotspot`
-for a JDK that no longer existed, and `flutter doctor` failed with
-*"Cannot execute ... to determine the version"* while the registry held the correct path.
-Fix: `flutter config --jdk-dir=<path>` (persisted), and read `JAVA_HOME` from the **registry** in
-scripts rather than trusting `$env:JAVA_HOME`.
-
-**5. `Invoke-WebRequest` stalls on IPv6-only mirrors.**
-`storage.googleapis.com` resolves to IPv6 on this host; the 1.8 GB Flutter download sat at 0 bytes
-indefinitely. Use `curl.exe -4 -L` for every large download, and prefer `tar.exe -xf` over
-`Expand-Archive` (much faster on large archives).
-
-**6. Detached background jobs have no stdin.**
-`android.exe sdk install` blocks forever at 0% CPU when launched from a detached background shell.
-Run it in the foreground, or pre-write `licenses/android-sdk-license`.
-
----
-
-## 4. Network reachability notes
-
-`clumsy.netrf.org` and `www.jitbit.net` (clumsy's upstream hosts) **do not resolve** on this network.
-The binary was obtained from the GitHub release instead:
-
-```
-https://github.com/jagt/clumsy/releases/download/0.3/clumsy-0.3-win64-a.zip
-```
-
-Reachable and used: `storage.googleapis.com`, `dl.google.com`, `aka.ms`, `go.dev`, `github.com`,
-`pub.dev`, `mqtt.eclipseprojects.io`. Several resolve IPv6-only, hence pitfall #5.
-
----
-
-## 5. Link shaping (Phase 0 spikes 2 & 5)
-
-Two independent levers:
-
-```powershell
-# Windows NIC — requires Administrator
-tools\netem\clumsy-profile.ps1 -Profile broadband100
-tools\netem\clumsy-profile.ps1 -Profile lte4
-tools\netem\clumsy-profile.ps1 -Profile lossy -PacketLoss 5
-```
-
-Profiles: `lan`, `broadband100`, `lte4`, `cgnat`, `lossy`.
-
-```bash
-# Linux side, inside WSL2
+~~~bash
 wsl -d Ubuntu -u root -- bash tools/netem/netem-wsl2.sh apply eth0 100mbit 5ms 1%
 wsl -d Ubuntu -u root -- bash tools/netem/netem-wsl2.sh clear eth0
-```
+~~~
 
-`tc` is present at `/usr/sbin/tc` in the WSL2 Ubuntu image.
+Do not call a delay/loss profile a NAT topology. CGNAT/symmetric mapping tests need
+an explicit routing/NAT fixture. Do not assume Windows-to-Android packets traverse WSL.
 
----
+## Installer corrections
 
-## 6. Known deviation from the intended layout
+Nested JDK detection is now idempotent; VS detection uses the actual C++ toolchain,
+not a path's existence; native download/extraction/winget/AVD exit codes are checked.
+Flutter archives are verified against the official release checksum manifest.
+Flutter's JDK is pinned explicitly. Existing AVDs are preserved. Licenses use the
+official review/acceptance flow rather than fabricated acceptance hashes.
+Large downloads use curl -4 with HTTP failure handling. Fresh-machine installation
+was not rerun on this existing host; syntax and current-host smoke results are separate.
 
-Visual Studio Build Tools lives at **`C:\Program`** rather than
-`C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools` (pitfall #1).
+Android Studio, full VS IDE, Docker, Python and cloud credentials are not prerequisites
+for this baseline. No TURN, server, cloud VM, account or telemetry service was provisioned.
 
-This is functionally fine — `vswhere` reports it correctly, `flutter doctor` detects
-*"Visual Studio Build Tools 2022 version 17.14.37806.7 / Windows 10 SDK version 10.0.26100.0"*,
-and `flutter build windows` resolves the toolchain. The path has no spaces, which is the
-safer configuration anyway.
+Next: verify the integrated core under the
+[implementation-first revision](../../P2P_VIDEO_SHARE_BUILD_PLAN.md#63-implementation-first-sequencing-revision),
+then complete the deferred physical-device/network matrix before release claims.
+The hotspot workaround remains experimental and is not a production default.
 
-If a canonical layout is wanted, reinstall with:
+## Core integration prerequisite discovered
+
+The experimental core's Windows build failed in
+`flutter_secure_storage_windows_plugin.cpp` because `atlstr.h` is absent from
+the selected MSVC14.44 toolset. This session's Windows token is not Administrator.
+Existing MSVC, empty-template and earlier interface builds are not proof that
+this new protected-storage dependency can build.
+
+The native runner/tray sources were separately compiled with MSBuild's
+`ClCompile` target: zero warnings/errors. This does not link the app or clear the
+missing plugin prerequisite. Do not use an old build-output `vault.exe` as core
+evidence.
+
+From an Administrator PowerShell at repository root:
 
 ```powershell
-"C:\Program Files (x86)\Microsoft Visual Studio\Installer\setup.exe" uninstall --installPath "C:\Program" --quiet --norestart
-tools\setup\install-toolchain.ps1 -VsPath C:\VSBuildTools
+powershell -NoProfile -ExecutionPolicy Bypass -File tools/setup/install-windows-atl.ps1
 ```
 
----
+This additive installer targets only `Microsoft.VisualStudio.Component.VC.ATL`
+in the existing VS2022 instance. It verifies the active toolset's header and
+library, never forces applications closed, and refuses non-administrator
+installation before launching the installer. The guard and PowerShell parsing
+were exercised; the elevated installation itself has not run. Fresh-machine
+setup now includes ATL, and normal verification must no longer report a fully
+ready Windows core toolchain without it.
 
-## 7. Not installed (deliberately)
-
-| Tool | Reason |
-|---|---|
-| Android Studio | The SDK is fully managed by `android.exe` / `sdkmanager`. Adds ~3 GB for a GUI on top of an AVD we drive headless. Add later if AVD/GUI management is wanted. |
-| Full Visual Studio IDE | Build Tools contains the entire C++ toolchain. |
-| Any TURN server | Plan §1.1 — we never run infrastructure. TURN is user-supplied and the field ships empty. |
-| Sentry / analytics | Plan §1.7, Appendix A — no telemetry, explicitly omitted. |
+The requested standard Windows elevation attempt returned “operation was
+canceled by the user” before the elevated installer started. Approval in chat
+does not grant OS administrator authority. The full Windows build remains
+blocked; no automatic elevation retry or privilege bypass was attempted.

@@ -1,0 +1,20 @@
+name: vault_directory
+description: Private contact presence and bounded opt-in public MQTT pilot discovery.
+version: 0.1.0
+publish_to: none
+resolution: workspace
+
+environment:
+  sdk: ^3.13.5
+
+dependencies:
+  sqlite3: 3.7.1
+  vault_identity:
+    path: ../vault_identity
+  vault_protocol:
+    path: ../vault_protocol
+  vault_signaling:
+    path: ../vault_signaling
+
+dev_dependencies:
+  test: ^1.25.0

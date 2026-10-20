@@ -13,7 +13,9 @@
 # Examples matching the build plan's Phase 0 spike 2:
 #   ./netem-wsl2.sh apply eth0 100mbit 5ms 1%      # "100 Mbps broadband"
 #   ./netem-wsl2.sh apply eth0 4mbit  60ms 2%     # "4G / LTE"
-#   ./netem-wsl2.sh apply eth0 20mbit 0ms 0%      # "same Wi-Fi LAN" (effectively unshaped)
+#   ./netem-wsl2.sh clear eth0                     # unshaped LAN baseline
+# Only WSL harness traffic traversing this interface is shaped, not arbitrary
+# Windows/Android traffic. Delay/loss do not emulate CGNAT or symmetric NAT.
 
 set -euo pipefail
 
@@ -39,7 +41,15 @@ case "${1:-}" in
   clear)
     need_root
     iface="${2:?iface required}"
-    tc qdisc del dev "$iface" root 2>/dev/null || echo "no root qdisc on $iface"
+    if ! tc qdisc show dev "$iface" >/dev/null; then
+      echo "cannot inspect interface $iface" >&2
+      exit 1
+    fi
+    if tc qdisc show dev "$iface" | grep -q 'qdisc noqueue'; then
+      echo "no root qdisc on $iface"
+      exit 0
+    fi
+    tc qdisc del dev "$iface" root
     echo "cleared $iface"
     ;;
   list)

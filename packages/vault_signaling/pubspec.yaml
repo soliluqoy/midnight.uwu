@@ -1,0 +1,17 @@
+name: vault_signaling
+description: Bounded signed HPKE private signaling over manual exchange and TLS MQTT 5.
+version: 0.1.0
+publish_to: none
+resolution: workspace
+environment:
+  sdk: ^3.13.5
+dependencies:
+  event_bus: 2.0.1
+  mqtt5_client: 5.1.0
+  typed_data: 1.4.0
+  vault_identity:
+    path: ../vault_identity
+  vault_protocol:
+    path: ../vault_protocol
+dev_dependencies:
+  test: ^1.25.0

@@ -1,0 +1,32 @@
+name: vault_phase0_probe
+description: Throwaway Phase 0 native transport, codec and VOD feasibility probe.
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.13.5
+
+dependencies:
+  crypto: 3.0.7
+  flutter:
+    sdk: flutter
+  flutter_webrtc: 1.6.2+hotfix.4
+  media_kit: 1.2.6
+  media_kit_libs_video: 1.0.7
+  media_kit_video: 2.0.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: 6.0.0
+
+# Generated from the exact hosted pin by tool/prepare-webrtc-hotspot.ps1.
+dependency_overrides:
+  flutter_webrtc:
+    path: .plugin_overrides/flutter_webrtc
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/front.mp4
+    - assets/tail.mp4

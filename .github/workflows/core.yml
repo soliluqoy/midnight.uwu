@@ -1,0 +1,56 @@
+name: Core
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  windows-android:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.7'
+          channel: stable
+          cache: true
+      - name: Ensure Windows protected-storage prerequisite
+        shell: pwsh
+        run: ./tools/setup/install-windows-atl.ps1
+      - name: Resolve workspace
+        shell: pwsh
+        run: |
+          flutter pub get
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          dart run melos bootstrap
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Analyze, format and behavioral tests
+        shell: pwsh
+        run: ./tools/verify-core.ps1
+      - name: Verify setup tooling
+        shell: pwsh
+        run: ./tools/setup/test-verifier.ps1
+      - name: Build Windows debug
+        working-directory: apps/vault
+        shell: pwsh
+        run: flutter build windows --debug --no-pub
+      - name: Build Android ARM64 debug
+        working-directory: apps/vault
+        shell: pwsh
+        run: flutter build apk --debug --target-platform android-arm64 --no-pub
+      - name: Preserve developer artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: vault-developer-builds
+          if-no-files-found: error
+          path: |
+            apps/vault/build/windows/x64/runner/Debug/
+            apps/vault/build/app/outputs/flutter-apk/app-debug.apk

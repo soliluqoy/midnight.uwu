@@ -1,0 +1,12 @@
+name: vault_player
+description: Native media_kit playback and a bounded verified-chunk loopback adapter.
+version: 0.1.0
+publish_to: none
+resolution: workspace
+environment:
+  sdk: ^3.13.5
+dependencies:
+  media_kit: 1.2.6
+dev_dependencies:
+  flutter_test:
+    sdk: flutter

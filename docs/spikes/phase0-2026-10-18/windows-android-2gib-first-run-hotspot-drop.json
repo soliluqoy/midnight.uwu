@@ -1,0 +1,28 @@
+﻿{
+    "checkedAt":  "2026-10-18T21:10:10.4390928+08:00",
+    "scope":  "Synthetic block-verified transfer with cancel and resume; not production protocol",
+    "bytes":  2147483648,
+    "id":  "xb9b38380b6c3",
+    "attempts":  [
+                     {
+                         "cancelled":  true,
+                         "bytes":  2147483648,
+                         "startedAtBlock":  0,
+                         "sentBytesThisAttempt":  734314496,
+                         "receiverVerifiedBlocks":  700,
+                         "milliseconds":  110877
+                     }
+                 ],
+    "participants":  [
+                         {
+                             "platform":  "windows",
+                             "endpoint":  "http://127.0.0.1:48931"
+                         },
+                         {
+                             "platform":  "android",
+                             "endpoint":  "http://127.0.0.1:48932"
+                         }
+                     ],
+    "passed":  false,
+    "error":  "The remote server returned an error: (500) Internal Server Error."
+}

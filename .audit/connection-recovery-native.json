@@ -1,0 +1,66 @@
+{
+  "kind": "Windows two peers, real WebRTC; loss flags injected via VM service; no physical network disabled",
+  "before": {
+    "ready": true,
+    "failure": null,
+    "alice": "connected",
+    "bob": "connected",
+    "session": "CgGwvUzVW4gtTstf6MKQbg==",
+    "route": {
+      "local": "host",
+      "remote": "host"
+    },
+    "received": [
+      {
+        "nativeRecovery": "before"
+      },
+      {
+        "nativeRecovery": "after-short-loss"
+      }
+    ],
+    "states": [
+      "bob:authenticating",
+      "alice:authenticating",
+      "alice:connected",
+      "bob:connected",
+      "alice:negotiating",
+      "alice:connected"
+    ]
+  },
+  "after": {
+    "ready": true,
+    "failure": null,
+    "alice": "connected",
+    "bob": "connected",
+    "session": "CgGwvUzVW4gtTstf6MKQbg==",
+    "route": {
+      "local": "host",
+      "remote": "host"
+    },
+    "received": [
+      {
+        "nativeRecovery": "before"
+      },
+      {
+        "nativeRecovery": "after-short-loss"
+      },
+      {
+        "nativeRecovery": "after-native-restart"
+      }
+    ],
+    "states": [
+      "bob:authenticating",
+      "alice:authenticating",
+      "alice:connected",
+      "bob:connected",
+      "alice:negotiating",
+      "alice:connected",
+      "alice:negotiating",
+      "bob:negotiating",
+      "bob:authenticating",
+      "alice:authenticating",
+      "alice:connected",
+      "bob:connected"
+    ]
+  }
+}

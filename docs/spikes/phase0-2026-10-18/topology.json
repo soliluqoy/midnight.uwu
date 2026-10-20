@@ -1,0 +1,10 @@
+﻿{
+    "checkedAt":  "2026-10-18T19:54:12.3747728+08:00",
+    "scope":  "Physical phone hotspot to PC Wi-Fi; USB carries local test control only; synthetic bytes use native WebRTC",
+    "androidNetworkMonitorDisabled":  true,
+    "androidHotspotInterface":  "ap0",
+    "hotspotHostCandidatePresent":  true,
+    "relayCandidatePresent":  false,
+    "hostCandidateCount":  16,
+    "rawAddressesSaved":  false
+}

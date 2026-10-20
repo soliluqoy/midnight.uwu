@@ -1,0 +1,8 @@
+﻿{
+    "observedAt":  "2026-10-18T19:41:30.8047225+08:00",
+    "passed":  false,
+    "phase":  "First Android WebRTC initialization",
+    "cause":  "Probe manifest lacked ACCESS_NETWORK_STATE; native network monitor threw SecurityException and libwebrtc aborted",
+    "plannedRepair":  "Declare network permissions, preflight the grant, and explicitly create data-only SDP",
+    "status":  "Repaired and verified: Android loopback, playback/seek and network permission checks pass"
+}

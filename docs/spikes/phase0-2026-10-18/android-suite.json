@@ -1,0 +1,345 @@
+﻿{
+    "checkedAt":  "2026-10-18T11:43:53.399768Z",
+    "platform":  "android",
+    "scope":  "Native same-device transport and in-memory loopback range playback only",
+    "results":  {
+                    "android":  {
+                                    "manufacturer":  "Xiaomi",
+                                    "model":  "23078PND5G",
+                                    "androidRelease":  "16",
+                                    "sdk":  36,
+                                    "h264Codecs":  [
+                                                       {
+                                                           "name":  "c2.mtk.avc.decoder",
+                                                           "encoder":  false,
+                                                           "hardwareAccelerated":  true,
+                                                           "softwareOnly":  false,
+                                                           "supports720p30":  true,
+                                                           "colorFormats":  [
+                                                                                2130708361,
+                                                                                2135033992,
+                                                                                19,
+                                                                                21,
+                                                                                20,
+                                                                                39,
+                                                                                54
+                                                                            ]
+                                                       },
+                                                       {
+                                                           "name":  "OMX.MTK.VIDEO.DECODER.AVC",
+                                                           "encoder":  false,
+                                                           "hardwareAccelerated":  true,
+                                                           "softwareOnly":  false,
+                                                           "supports720p30":  true,
+                                                           "colorFormats":  [
+                                                                                2130708361,
+                                                                                2135033992,
+                                                                                19,
+                                                                                21,
+                                                                                20,
+                                                                                39,
+                                                                                54
+                                                                            ]
+                                                       },
+                                                       {
+                                                           "name":  "c2.mtk.avc.decoder.lowlatency",
+                                                           "encoder":  false,
+                                                           "hardwareAccelerated":  true,
+                                                           "softwareOnly":  false,
+                                                           "supports720p30":  true,
+                                                           "colorFormats":  [
+                                                                                2130708361,
+                                                                                2135033992,
+                                                                                19,
+                                                                                21,
+                                                                                20,
+                                                                                39,
+                                                                                54
+                                                                            ]
+                                                       },
+                                                       {
+                                                           "name":  "c2.mtk.avc.decoder.secure",
+                                                           "encoder":  false,
+                                                           "hardwareAccelerated":  true,
+                                                           "softwareOnly":  false,
+                                                           "supports720p30":  true,
+                                                           "colorFormats":  [
+                                                                                2130708361,
+                                                                                2135033992,
+                                                                                19,
+                                                                                21,
+                                                                                20,
+                                                                                39,
+                                                                                54
+                                                                            ]
+                                                       },
+                                                       {
+                                                           "name":  "OMX.MTK.VIDEO.DECODER.AVC.secure",
+                                                           "encoder":  false,
+                                                           "hardwareAccelerated":  true,
+                                                           "softwareOnly":  false,
+                                                           "supports720p30":  true,
+                                                           "colorFormats":  [
+                                                                                2130708361,
+                                                                                2135033992,
+                                                                                19,
+                                                                                21,
+                                                                                20,
+                                                                                39,
+                                                                                54
+                                                                            ]
+                                                       },
+                                                       {
+                                                           "name":  "c2.mtk.avc.encoder",
+                                                           "encoder":  true,
+                                                           "hardwareAccelerated":  true,
+                                                           "softwareOnly":  false,
+                                                           "supports720p30":  true,
+                                                           "colorFormats":  [
+                                                                                2130708361,
+                                                                                2135033992,
+                                                                                19,
+                                                                                21,
+                                                                                20,
+                                                                                39,
+                                                                                54
+                                                                            ]
+                                                       },
+                                                       {
+                                                           "name":  "OMX.MTK.VIDEO.ENCODER.AVC",
+                                                           "encoder":  true,
+                                                           "hardwareAccelerated":  true,
+                                                           "softwareOnly":  false,
+                                                           "supports720p30":  true,
+                                                           "colorFormats":  [
+                                                                                2130708361,
+                                                                                2135033992,
+                                                                                19,
+                                                                                21,
+                                                                                20,
+                                                                                39,
+                                                                                54
+                                                                            ]
+                                                       },
+                                                       {
+                                                           "name":  "c2.mtk.avc.encoder.secure",
+                                                           "encoder":  true,
+                                                           "hardwareAccelerated":  true,
+                                                           "softwareOnly":  false,
+                                                           "supports720p30":  true,
+                                                           "colorFormats":  [
+                                                                                2130708361,
+                                                                                2135033992,
+                                                                                19,
+                                                                                21,
+                                                                                20,
+                                                                                39,
+                                                                                54
+                                                                            ]
+                                                       },
+                                                       {
+                                                           "name":  "c2.android.avc.decoder",
+                                                           "encoder":  false,
+                                                           "hardwareAccelerated":  false,
+                                                           "softwareOnly":  true,
+                                                           "supports720p30":  true,
+                                                           "colorFormats":  [
+                                                                                2135033992,
+                                                                                19,
+                                                                                21,
+                                                                                20,
+                                                                                39,
+                                                                                2130708361
+                                                                            ]
+                                                       },
+                                                       {
+                                                           "name":  "OMX.google.h264.decoder",
+                                                           "encoder":  false,
+                                                           "hardwareAccelerated":  false,
+                                                           "softwareOnly":  true,
+                                                           "supports720p30":  true,
+                                                           "colorFormats":  [
+                                                                                2135033992,
+                                                                                19,
+                                                                                21,
+                                                                                20,
+                                                                                39,
+                                                                                2130708361
+                                                                            ]
+                                                       },
+                                                       {
+                                                           "name":  "c2.android.avc.encoder",
+                                                           "encoder":  true,
+                                                           "hardwareAccelerated":  false,
+                                                           "softwareOnly":  true,
+                                                           "supports720p30":  false,
+                                                           "colorFormats":  [
+                                                                                2135033992,
+                                                                                19,
+                                                                                21,
+                                                                                20,
+                                                                                39,
+                                                                                2130708361
+                                                                            ]
+                                                       },
+                                                       {
+                                                           "name":  "OMX.google.h264.encoder",
+                                                           "encoder":  true,
+                                                           "hardwareAccelerated":  false,
+                                                           "softwareOnly":  true,
+                                                           "supports720p30":  false,
+                                                           "colorFormats":  [
+                                                                                2135033992,
+                                                                                19,
+                                                                                21,
+                                                                                20,
+                                                                                39,
+                                                                                2130708361
+                                                                            ]
+                                                       }
+                                                   ],
+                                    "networkStatePermissionGranted":  true
+                                },
+                    "loopback":  {
+                                     "passed":  true,
+                                     "scope":  "Same-device native WebRTC loopback, not LAN",
+                                     "forward":  {
+                                                     "passed":  true,
+                                                     "bytes":  16777216,
+                                                     "sha256":  "59884834c738a4356652892eb1ff5478d86974efd2e27f7ba827239bf90be25f",
+                                                     "milliseconds":  3401,
+                                                     "mibPerSecond":  4.704329924066235,
+                                                     "highestNativeBufferedBytes":  11760,
+                                                     "nativeBufferPolls":  1024,
+                                                     "bufferLowCallbacks":  1023,
+                                                     "maxMessageBytes":  16384,
+                                                     "path":  {
+                                                                  "verified":  true,
+                                                                  "localType":  "host",
+                                                                  "remoteType":  "host",
+                                                                  "currentRoundTripTime":  0.0
+                                                              }
+                                                 },
+                                     "reverse":  {
+                                                     "passed":  true,
+                                                     "bytes":  16777216,
+                                                     "sha256":  "59884834c738a4356652892eb1ff5478d86974efd2e27f7ba827239bf90be25f",
+                                                     "milliseconds":  3115,
+                                                     "mibPerSecond":  5.135196896286995,
+                                                     "highestNativeBufferedBytes":  11744,
+                                                     "nativeBufferPolls":  1024,
+                                                     "bufferLowCallbacks":  1023,
+                                                     "maxMessageBytes":  16384,
+                                                     "path":  {
+                                                                  "verified":  true,
+                                                                  "localType":  "host",
+                                                                  "remoteType":  "host",
+                                                                  "currentRoundTripTime":  0.0
+                                                              }
+                                                 }
+                                 },
+                    "vod":  {
+                                "passed":  true,
+                                "scope":  "Resident synthetic bytes via loopback HTTP; no P2P cache/seek latency claim",
+                                "samples":  [
+                                                {
+                                                    "fixture":  "front.mp4",
+                                                    "passed":  true,
+                                                    "startupMilliseconds":  823,
+                                                    "seeks":  [
+                                                                  {
+                                                                      "targetSeconds":  8,
+                                                                      "resumeMilliseconds":  341
+                                                                  },
+                                                                  {
+                                                                      "targetSeconds":  2,
+                                                                      "resumeMilliseconds":  356
+                                                                  },
+                                                                  {
+                                                                      "targetSeconds":  10,
+                                                                      "resumeMilliseconds":  305
+                                                                  }
+                                                              ],
+                                                    "width":  1280,
+                                                    "height":  720,
+                                                    "durationMilliseconds":  12021,
+                                                    "audioSampleRate":  48000,
+                                                    "audioChannelCount":  2,
+                                                    "audibilityVerified":  false,
+                                                    "muted":  true,
+                                                    "errors":  [
+
+                                                               ],
+                                                    "rangeRequests":  [
+                                                                          {
+                                                                              "method":  "GET",
+                                                                              "range":  "bytes=0-",
+                                                                              "start":  0,
+                                                                              "end":  2377567,
+                                                                              "status":  206
+                                                                          },
+                                                                          {
+                                                                              "method":  "GET",
+                                                                              "range":  "bytes=14286-",
+                                                                              "start":  14286,
+                                                                              "end":  2377567,
+                                                                              "status":  206
+                                                                          }
+                                                                      ]
+                                                },
+                                                {
+                                                    "fixture":  "tail.mp4",
+                                                    "passed":  true,
+                                                    "startupMilliseconds":  841,
+                                                    "seeks":  [
+                                                                  {
+                                                                      "targetSeconds":  8,
+                                                                      "resumeMilliseconds":  331
+                                                                  },
+                                                                  {
+                                                                      "targetSeconds":  2,
+                                                                      "resumeMilliseconds":  323
+                                                                  },
+                                                                  {
+                                                                      "targetSeconds":  10,
+                                                                      "resumeMilliseconds":  288
+                                                                  }
+                                                              ],
+                                                    "width":  1280,
+                                                    "height":  720,
+                                                    "durationMilliseconds":  12021,
+                                                    "audioSampleRate":  48000,
+                                                    "audioChannelCount":  2,
+                                                    "audibilityVerified":  false,
+                                                    "muted":  true,
+                                                    "errors":  [
+
+                                                               ],
+                                                    "rangeRequests":  [
+                                                                          {
+                                                                              "method":  "GET",
+                                                                              "range":  "bytes=0-",
+                                                                              "start":  0,
+                                                                              "end":  2377567,
+                                                                              "status":  206
+                                                                          },
+                                                                          {
+                                                                              "method":  "GET",
+                                                                              "range":  "bytes=48-",
+                                                                              "start":  48,
+                                                                              "end":  2377567,
+                                                                              "status":  206
+                                                                          },
+                                                                          {
+                                                                              "method":  "GET",
+                                                                              "range":  "bytes=48-",
+                                                                              "start":  48,
+                                                                              "end":  2377567,
+                                                                              "status":  206
+                                                                          }
+                                                                      ]
+                                                }
+                                            ]
+                            }
+                }
+}

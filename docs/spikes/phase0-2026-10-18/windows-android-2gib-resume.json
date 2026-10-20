@@ -1,0 +1,50 @@
+﻿{
+    "checkedAt":  "2026-10-18T21:37:53.5367619+08:00",
+    "scope":  "Synthetic block-verified transfer with cancel and resume; not production protocol",
+    "bytes":  2147483648,
+    "id":  "xb9b38380b6c3",
+    "attempts":  [
+                     {
+                         "passed":  true,
+                         "cancelled":  false,
+                         "bytes":  2147483648,
+                         "root":  "e3cdb4b63b5a3fc4f2266db62dfb3d607b75bbec7e87d3419ae496994263cd7b",
+                         "blocks":  2048,
+                         "resumedFromBlock":  1397,
+                         "sentBytesThisAttempt":  682622976,
+                         "milliseconds":  143956,
+                         "mibPerSecond":  4.5222043463552,
+                         "highestNativeBufferedBytes":  507876,
+                         "nativeBufferPolls":  41910,
+                         "controlPingSamples":  408,
+                         "controlRttMicrosP50":  19607,
+                         "controlRttMicrosP95":  39662,
+                         "controlRttMicrosMax":  493031,
+                         "senderRssStartBytes":  346644480,
+                         "senderRssPeakBytes":  358469632,
+                         "path":  {
+                                      "verified":  true,
+                                      "localType":  "host",
+                                      "remoteType":  "host",
+                                      "currentRoundTripTime":  0.009
+                                  }
+                     }
+                 ],
+    "participants":  [
+                         {
+                             "platform":  "windows",
+                             "endpoint":  "http://127.0.0.1:48931"
+                         },
+                         {
+                             "platform":  "android",
+                             "endpoint":  "http://127.0.0.1:48932"
+                         }
+                     ],
+    "receiver":  {
+                     "id":  "xb9b38380b6c3",
+                     "verifiedBlocks":  2048,
+                     "failed":  false,
+                     "peakRssBytes":  547905536
+                 },
+    "passed":  true
+}

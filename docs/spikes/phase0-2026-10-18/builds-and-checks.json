@@ -1,0 +1,54 @@
+﻿{
+    "checkedAt":  "2026-10-18T19:58:19.6028232+08:00",
+    "scope":  "Experimental native probe binaries and pinned dependency graphs; not release artifacts",
+    "commands":  [
+                     "flutter build apk --debug --target-platform android-arm64 --no-pub --dart-define=VAULT_HOTSPOT=true",
+                     "flutter build windows --debug --no-pub",
+                     "flutter analyze --no-pub --fatal-infos",
+                     "flutter test --no-pub",
+                     "go test ./... -v -timeout 90s",
+                     "tools/setup/test-verifier.ps1"
+                 ],
+    "buildSeconds":  {
+                         "windows":  37.5,
+                         "android":  34.8
+                     },
+    "checks":  {
+                   "verifierRegressionAssertions":  9,
+                   "pionTests":  3,
+                   "flutterTests":  6,
+                   "flutterAnalysis":  "PASS",
+                   "powershellSyntaxFiles":  12
+               },
+    "warnings":  [
+                     "Pinned Android plugin still applies Kotlin Gradle Plugin; future Flutter migration required.",
+                     "Pinned media_kit Windows CMake script emits CMP0175 compatibility warning on CMake4.4; build passes."
+                 ],
+    "artifacts":  [
+                      {
+                          "path":  "spikes/phase0_probe/build/app/outputs/flutter-apk/app-debug.apk",
+                          "bytes":  196058891,
+                          "sha256":  "165143f0f87733a9d360f563be50bec2014c0feda87541ad28d1eaffb8503d53"
+                      },
+                      {
+                          "path":  "spikes/phase0_probe/build/windows/x64/runner/Debug/vault_phase0_probe.exe",
+                          "bytes":  1029632,
+                          "sha256":  "4bca93bbfbded32787726567d5ca0ab906f31a674210ed73f49fe6a713c5e091"
+                      },
+                      {
+                          "path":  "tools/interop_harness/bin/vault-interop.exe",
+                          "bytes":  16715776,
+                          "sha256":  "898f72bc640c796d36ec7c923b2e7b87f673dc32f98a45b75c2666a91d705763"
+                      },
+                      {
+                          "path":  "spikes/phase0_probe/pubspec.lock",
+                          "bytes":  19385,
+                          "sha256":  "35e8448f40813f1c31d7421c2d413d4dcc69685dfd5006d125099eea7b983883"
+                      },
+                      {
+                          "path":  "tools/interop_harness/go.sum",
+                          "bytes":  3938,
+                          "sha256":  "7c903c471e0f3a9f44aa15fdeca1661991865a8aa652d242dc9aa9b7dcdd22a8"
+                      }
+                  ]
+}

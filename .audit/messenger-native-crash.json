@@ -1,0 +1,13 @@
+{
+  "application": "vault.exe 0.2.3.4006",
+  "module": "libwebrtc.dll",
+  "exceptionCode": "0xc0000005",
+  "faultOffset": "0x1fcd",
+  "stage": "native connection setup before messenger delivery",
+  "eventId": 1000,
+  "eventTimeLocal": "2026-10-19T17:03:52",
+  "scenario": "two isolated VaultRuntime instances in one Windows process, default public STUN, concurrent Android build",
+  "cause": "unknown; neither STUN nor concurrent compilation is established as causal",
+  "firstRun": "same-process default-runtime trial previously delivered messages both ways and retained chat after media stop; UI helper then failed to invoke Libraries",
+  "status": "native stability and release-readiness gate remains open"
+}

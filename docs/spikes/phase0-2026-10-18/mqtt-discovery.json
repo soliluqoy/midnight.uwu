@@ -1,0 +1,19 @@
+{
+  "scenario": "discovery",
+  "checkedAt": "2026-10-18T14:04:11.002725Z",
+  "client": "mqtt5_client 5.1.0, TLS, MQTT 5, QoS 1",
+  "broker": "tools/mqtt_testbroker (mochi-mqtt v2.7.9, local)",
+  "onlineNodes": 10,
+  "heartbeatSeconds": 30,
+  "millisecondsToFindN": {
+    "1": 5759,
+    "5": 15576,
+    "8": 19084,
+    "10": 25405
+  },
+  "foundAtEnd": 10,
+  "rejected": {},
+  "brokerRetainedNothing": true,
+  "passed": true,
+  "uncaughtClientErrors": []
+}

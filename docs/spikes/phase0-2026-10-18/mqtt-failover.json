@@ -1,0 +1,78 @@
+{
+  "scenario": "failover",
+  "checkedAt": "2026-10-18T14:03:50.431658Z",
+  "client": "mqtt5_client 5.1.0, TLS, MQTT 5, QoS 1",
+  "broker": "tools/mqtt_testbroker (mochi-mqtt v2.7.9, local)",
+  "beforeAcked": true,
+  "afterKillAcked": true,
+  "recoveryMillisecondsAfterPrimaryKilled": 893,
+  "sendTriesAfterKill": 1,
+  "aliceEndpointLog": [
+    {
+      "atMs": 1792332231703,
+      "event": "connected",
+      "endpoint": "127.0.0.1:18883"
+    },
+    {
+      "atMs": 1792332232734,
+      "event": "disconnected",
+      "endpoint": "127.0.0.1:18883"
+    },
+    {
+      "atMs": 1792332233067,
+      "event": "connected",
+      "endpoint": "127.0.0.1:18884"
+    }
+  ],
+  "bobEndpointLog": [
+    {
+      "atMs": 1792332231731,
+      "event": "connected",
+      "endpoint": "127.0.0.1:18883"
+    },
+    {
+      "atMs": 1792332232730,
+      "event": "disconnected",
+      "endpoint": "127.0.0.1:18883"
+    },
+    {
+      "atMs": 1792332233068,
+      "event": "connected",
+      "endpoint": "127.0.0.1:18884"
+    }
+  ],
+  "aliceStats": {
+    "connects": 2,
+    "connectFailures": 0,
+    "disconnects": 1,
+    "publishes": 4,
+    "publishSuppressed": 0,
+    "inboundFrames": 2,
+    "delivered": 0,
+    "duplicatesReacked": 0,
+    "droppedOversize": 0,
+    "droppedRateLimited": 0,
+    "rejected": {}
+  },
+  "bobStats": {
+    "connects": 2,
+    "connectFailures": 0,
+    "disconnects": 1,
+    "publishes": 2,
+    "publishSuppressed": 0,
+    "inboundFrames": 2,
+    "delivered": 2,
+    "duplicatesReacked": 0,
+    "droppedOversize": 0,
+    "droppedRateLimited": 0,
+    "rejected": {}
+  },
+  "bobReceived": [
+    "before",
+    "after-1"
+  ],
+  "passed": true,
+  "uncaughtClientErrors": [
+    "SocketException"
+  ]
+}

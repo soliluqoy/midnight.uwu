@@ -1,0 +1,24 @@
+name: vault_net
+description: Authenticated direct-only native WebRTC sessions for Vault.
+version: 0.1.0
+publish_to: none
+resolution: workspace
+
+environment:
+  sdk: ^3.13.5
+
+dependencies:
+  crypto: 3.0.7
+  flutter:
+    sdk: flutter
+  flutter_webrtc: 1.6.2+hotfix.4
+  vault_identity:
+    path: ../vault_identity
+  vault_protocol:
+    path: ../vault_protocol
+  vault_signaling:
+    path: ../vault_signaling
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter

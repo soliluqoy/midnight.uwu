@@ -1,0 +1,14 @@
+name: vault_identity
+description: Vault experimental pure-Dart authenticated identity and wire primitives.
+publish_to: none
+version: 0.1.0
+resolution: workspace
+
+environment:
+  sdk: ^3.13.5
+
+dependencies:
+  cryptography: 2.9.0
+
+dev_dependencies:
+  test: ^1.25.0

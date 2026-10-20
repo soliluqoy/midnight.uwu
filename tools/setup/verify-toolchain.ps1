@@ -1,117 +1,166 @@
-<#
+﻿<#
 .SYNOPSIS
-  Verifies the complete Vault development toolchain and prints a go/no-go table.
-
+  Verify installed tooling without elevation or changing the host.
 .DESCRIPTION
-  Run this after tools/setup/install-toolchain.ps1 (or a manual install).
-  Every check prints PASS / FAIL / WARN. Exit code 0 means the toolchain can
-  build and run Vault on both Android and Windows.
-
-  Phase 0 of the build plan says: "Kill or re-plan here, not later."
-  This script is the machine-checkable half of that instruction.
+  Every required failure affects exit status. PASS means installed tools only.
+  Native smoke builds, attached hardware and Phase 0 results are separate gates.
 #>
-
-$ErrorActionPreference = 'Continue'
-$script:Fail = 0
-$script:Warn = 0
-
-# Where the non-default tooling lives. Keep in sync with install-toolchain.ps1 -DevRoot.
-# NOTE: read JAVA_HOME from the registry, not the process env. A long-lived parent
-# process (an IDE, a CI agent) can carry a stale JAVA_HOME for a JDK that has since
-# been uninstalled, and the inherited value will win over the correct one.
-$DevRoot = if ($env:VaultDevRoot) { $env:VaultDevRoot } else { 'C:\dev' }
-$env:VaultDevRoot = $DevRoot
-$env:ANDROID_SDK_ROOT = if ([Environment]::GetEnvironmentVariable('ANDROID_SDK_ROOT','User')) {
-    [Environment]::GetEnvironmentVariable('ANDROID_SDK_ROOT','User')
-} else { "$DevRoot\android-sdk" }
+[CmdletBinding()]
+param(
+    [string]$DevRoot = $(if ($env:VaultDevRoot) { $env:VaultDevRoot } else { 'C:\dev' }),
+    [string]$JsonOutput,
+    [switch]$SkipEmulator,
+    [switch]$RequirePhysicalAndroid
+)
+$ErrorActionPreference = 'Stop'
+. "$PSScriptRoot\verification-helpers.ps1"
+$results = [Collections.Generic.List[object]]::new()
+$env:Path = [Environment]::GetEnvironmentVariable('Path','Machine') + ';' +
+            [Environment]::GetEnvironmentVariable('Path','User') + ';' + $env:Path
 $regJava = [Environment]::GetEnvironmentVariable('JAVA_HOME','User')
-$env:JAVA_HOME = if ($regJava -and (Test-Path (Join-Path $regJava 'bin\java.exe'))) {
-    $regJava
-} elseif ($env:JAVA_HOME -and (Test-Path (Join-Path $env:JAVA_HOME 'bin\java.exe'))) {
-    $env:JAVA_HOME
-} else { "$DevRoot\jdk17\jdk-17.0.20.1+1" }
-
-function Section($t) { Write-Host "`n=== $t ===" -ForegroundColor Cyan }
+if ($regJava -and (Test-Path -LiteralPath "$regJava\bin\java.exe")) { $env:JAVA_HOME = $regJava }
+$sdk = [Environment]::GetEnvironmentVariable('ANDROID_SDK_ROOT','User')
+if (-not $sdk) { $sdk = if ($env:ANDROID_SDK_ROOT) { $env:ANDROID_SDK_ROOT } else { "$DevRoot\android-sdk" } }
+$env:ANDROID_SDK_ROOT = $sdk
+$env:ANDROID_HOME = $sdk
 
 function Check {
-    param([string]$Name, [scriptblock]$Probe, [string]$Fix, [switch]$Critical)
+    param([string]$Name, [scriptblock]$Probe, [string]$Fix, [switch]$Optional)
     try {
-        $r = & $Probe
-        if ($r -and "$r".Trim()) {
-            Write-Host ("  [PASS] {0,-34} {1}" -f $Name, "$r".Trim()) -ForegroundColor Green
-        } else {
-            Write-Host ("  [FAIL] {0,-34} -> {1}" -f $Name, $Fix) -ForegroundColor Red
-            if ($Critical) { $script:Fail++ }
-        }
+        $value = & $Probe
+        if (-not (Test-VaultProbeResult $value)) { throw 'Probe returned false or empty output.' }
+        $detail = ([string]($value -join ' ')).Trim()
+        $status = 'PASS'
     } catch {
-        Write-Host ("  [FAIL] {0,-34} -> {1} ({2})" -f $Name, $Fix, $_.Exception.Message) -ForegroundColor Red
-        if ($Critical) { $script:Fail++ }
+        $detail = "$($_.Exception.Message) Remedy: $Fix"
+        $status = if ($Optional) { 'WARN' } else { 'FAIL' }
     }
+    $results.Add([pscustomobject]@{name=$Name; status=$status; detail=$detail})
+    Write-Host ("[{0}] {1}: {2}" -f $status, $Name, ($detail -replace '\r?\n', ' '))
 }
 
-function WarnCheck {
-    param([string]$Name, [scriptblock]$Probe, [string]$Note)
-    try {
-        $r = & $Probe
-        if ($r -and "$r".Trim()) { Write-Host ("  [PASS] {0,-34} {1}" -f $Name, "$r".Trim()) -ForegroundColor Green }
-        else { Write-Host ("  [WARN] {0,-34} -> {1}" -f $Name, $Note) -ForegroundColor Yellow; $script:Warn++ }
-    } catch {
-        Write-Host ("  [WARN] {0,-34} -> {1}" -f $Name, $Note) -ForegroundColor Yellow
-        $script:Warn++
+Write-Host "Vault installation verification on $env:COMPUTERNAME"
+Check 'Git' { Invoke-VaultNative git @('--version') } 'Install Git.Git.'
+Check '7-Zip' { Assert-VaultPath 'C:\Program Files\7-Zip\7z.exe' } 'Optional archive tool.' -Optional
+Check 'Flutter and Dart pins' {
+    $version = (Invoke-VaultNative flutter @('--version','--machine')) | ConvertFrom-Json
+    if ($version.frameworkVersion -ne '3.47.7' -or $version.dartSdkVersion -notmatch '^3\.13\.5\b') {
+        throw "Expected Flutter 3.47.7 / Dart 3.13.5; found $($version.frameworkVersion) / $($version.dartSdkVersion)."
     }
-}
+    "Flutter $($version.frameworkVersion); Dart $($version.dartSdkVersion)"
+} 'Use the pinned SDK or deliberately update the manifest and repeat smoke builds.'
+Check 'flutter doctor required platforms' {
+    # Flutter emits UTF-8 even when Windows PowerShell's console uses CP437.
+    $doctor = Invoke-VaultNative flutter @('doctor','-v') -OutputEncoding ([System.Text.UTF8Encoding]::new($false))
+    Assert-VaultDoctorPlatforms $doctor
+} 'Read flutter doctor -v and repair the named component.'
 
-# Refresh PATH from the registry so a freshly-installed tool is visible.
-$env:Path = [Environment]::GetEnvironmentVariable('Path','Machine') + ';' +
-            [Environment]::GetEnvironmentVariable('Path','User')
-
-Write-Host "Vault toolchain verification" -ForegroundColor White
-Write-Host ("Host: {0} | {1} logical CPUs" -f $env:COMPUTERNAME, $env:NUMBER_OF_PROCESSORS)
-
-Section "Base tooling"
-Check "git"      { (git --version) }                       "winget install Git.Git"                          -Critical
-Check "7-Zip"    { (& 'C:\Program Files\7-Zip\7z.exe' | Select-String -Pattern '7-Zip').ToString().Trim() } "winget install 7zip.7zip"
-
-Section "Flutter / Dart"
-Check "flutter"  { (flutter --version 2>&1 | Select-String 'Flutter' | Select-Object -First 1) } "Install to C:\dev\flutter and add bin to PATH" -Critical
-Check "dart"     { (dart --version 2>&1) }                "Comes with Flutter"                              -Critical
-Check "flutter doctor (android)" { (flutter doctor -v 2>&1 | Select-String 'Android toolchain' | Select-Object -First 1) } "Run: flutter doctor --android-licenses"
-
-Section "Windows desktop build (MSVC)"
 $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
-Check "vswhere"  { (& $vswhere -latest -products * -property displayName) } "Install VS 2022 Build Tools (VCTools workload)" -Critical
-Check "MSVC toolset" { (& $vswhere -latest -products * -find 'VC\Tools\MSVC\**\bin\Hostx64\x64\cl.exe' | Select-Object -First 1 | Split-Path -Leaf) } "VCTools workload missing"
-Check "Windows SDK"  { (Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\Lib" -Directory -ErrorAction SilentlyContinue | Where-Object { Test-Path (Join-Path $_.FullName 'um\x64\kernel32.lib') } | Sort-Object Name -Descending | Select-Object -First 1 -ExpandProperty Name) } "Install the Windows SDK component (Microsoft.VisualStudio.Component.Windows11SDK.*)"
-Check "CMake"    { (cmake --version | Select-Object -First 1) } "winget install Kitware.CMake"
-Check "Ninja"    { (ninja --version) }                    "winget install Ninja-build.Ninja"
-
-Section "Android SDK"
-Check "JAVA_HOME"      { $env:JAVA_HOME }                          "Set to a JDK 17 install"                        -Critical
-Check "java"           { (java -version 2>&1 | Select-String 'version' | Select-Object -First 1) } "JDK 17 required for Gradle" -Critical
-Check "ANDROID_SDK_ROOT" { $env:ANDROID_SDK_ROOT }                 "Set to C:\dev\android-sdk"
-Check "sdkmanager"     { (& "$env:ANDROID_SDK_ROOT\cmdline-tools\latest\bin\sdkmanager.bat" --version 2>&1 | Select-String '^\d') } "Install cmdline-tools"
-Check "adb"            { (adb version 2>&1 | Select-String 'Android Debug Bridge') } "sdkmanager platform-tools"
-Check "platform android-36" { (Test-Path "$env:ANDROID_SDK_ROOT\platforms\android-36") } "sdkmanager platforms;android-36"
-Check "build-tools 36"     { (Test-Path "$env:ANDROID_SDK_ROOT\build-tools\36.1.0") } "sdkmanager build-tools;36.1.0"
-
-Section "Android emulator (Phase 0 needs a second Android node)"
-Check "emulator binary" { (Test-Path "$env:ANDROID_SDK_ROOT\emulator\emulator.exe") } "sdkmanager emulator"
-Check "system image"    { (Test-Path "$env:ANDROID_SDK_ROOT\system-images\android-36\google_apis\x86_64") } "sdkmanager system-images;android-36;google_apis;x86_64"
-Check "AVD defined"      { (& "$env:ANDROID_SDK_ROOT\emulator\emulator.exe" -list-avds 2>&1 | Select-Object -First 1) } "avdmanager create avd -n vault36 -k system-images;android-36;google_apis;x86_64"
-WarnCheck "hypervisor available" { (Get-CimInstance Win32_ComputerSystem).HypervisorPresent } "Emulator will fall back to software rendering (unusable). Attach a physical device over USB instead."
-
-Section "Interop harness (pion) + link shaping"
-Check "go"      { (go version) }                                    "winget install GoLang.Go"                       -Critical
-Check "clumsy"  { (Test-Path "$env:VaultDevRoot\tools\clumsy\clumsy.exe") } "Extract clumsy-0.3-win64-a.zip to C:\dev\tools\clumsy"
-WarnCheck "WSL2 tc netem" { (wsl -d Ubuntu -- bash -lc 'command -v tc || echo missing' 2>&1) } "sudo apt-get install -y iproute2 inside WSL2 Ubuntu"
-
-Section "Result"
-Write-Host ""
-if ($script:Fail -eq 0) {
-    Write-Host "  RESULT: PASS  (warnings: $script:Warn)" -ForegroundColor Green
-    Write-Host "  Next: run Phase 0 spikes. Start with spikes/spike01_hw_encode." -ForegroundColor White
-} else {
-    Write-Host "  RESULT: FAIL  (critical failures: $script:Fail, warnings: $script:Warn)" -ForegroundColor Red
-    Write-Host "  Do not start Phase 0 until this passes. See docs/ops/ENVIRONMENT.md." -ForegroundColor White
+Check 'MSVC C++ workload' {
+    $found = Invoke-VaultNative $vswhere @('-latest','-products','*','-requires','Microsoft.VisualStudio.Component.VC.Tools.x86.x64','-find','VC\Tools\MSVC\**\bin\Hostx64\x64\cl.exe')
+    Assert-VaultPath ($found -split '\r?\n' | Select-Object -First 1)
+} 'Install the VS 2022 C++ desktop workload.'
+Check 'MSVC ATL protected-storage headers and libraries' {
+    $installation = Invoke-VaultNative $vswhere @('-latest','-products','*','-version','[17.0,18.0)','-property','installationPath')
+    $versionFile = Join-Path $installation 'VC\Auxiliary\Build\Microsoft.VCToolsVersion.default.txt'
+    Assert-VaultPath $versionFile | Out-Null
+    $version = (Get-Content -LiteralPath $versionFile -Raw).Trim()
+    Assert-VaultPath (Join-Path $installation "VC\Tools\MSVC\$version\atlmfc\include\atlstr.h") | Out-Null
+    Assert-VaultPath (Join-Path $installation "VC\Tools\MSVC\$version\atlmfc\lib\x64\atls.lib")
+} 'Run tools/setup/install-windows-atl.ps1 in Administrator PowerShell; no SDK reinstall is needed.'
+Check 'MSBuild' {
+    $found = Invoke-VaultNative $vswhere @('-latest','-products','*','-find','MSBuild\**\Bin\MSBuild.exe')
+    Invoke-VaultNative ($found -split '\r?\n' | Select-Object -First 1) @('-version','-nologo')
+} 'Repair VS Build Tools.'
+Check 'Windows SDK headers and libraries' {
+    $kits = "${env:ProgramFiles(x86)}\Windows Kits\10"
+    $installed = Get-ChildItem -LiteralPath "$kits\Lib" -Directory | Sort-Object Name -Descending | Where-Object {
+        (Test-Path -LiteralPath "$($_.FullName)\um\x64\kernel32.lib") -and
+        (Test-Path -LiteralPath "$kits\Include\$($_.Name)\um\Windows.h") -and
+        (Test-Path -LiteralPath "$kits\bin\$($_.Name)\x64\rc.exe")
+    } | Select-Object -First 1
+    if (-not $installed) { throw 'No complete x64 Windows SDK.' }
+    $installed.Name
+} 'Install Windows SDK 10.0.26100.0.'
+Check 'CMake' { Invoke-VaultNative cmake @('--version') } 'Install Kitware.CMake.'
+Check 'Ninja' { Invoke-VaultNative ninja @('--version') } 'Install Ninja-build.Ninja.'
+Check 'JDK 17 executable' {
+    Assert-VaultPath "$env:JAVA_HOME\bin\java.exe" | Out-Null
+    $version = Invoke-VaultNative "$env:JAVA_HOME\bin\java.exe" @('-version')
+    if ($version -notmatch 'version "17\.') { throw "JDK 17 required: $version" }
+    $version
+} 'Set JAVA_HOME and flutter config --jdk-dir to a working JDK 17.'
+Check 'Android SDK manager' { Invoke-VaultNative "$sdk\cmdline-tools\latest\bin\sdkmanager.bat" @('--version') } 'Install Android command-line tools.'
+Check 'ADB' { Invoke-VaultNative "$sdk\platform-tools\adb.exe" @('version') } 'Install platform-tools.'
+Check 'Android platform 36' { Assert-VaultPath "$sdk\platforms\android-36\android.jar" } 'Install platforms;android-36.'
+Check 'Pinned native plugin Android prerequisites' {
+    Assert-VaultPath "$sdk\platforms\android-35\android.jar" | Out-Null
+    Assert-VaultPath "$sdk\cmake\3.22.1\bin\cmake.exe" | Out-Null
+    'Platform 35 and Android SDK CMake 3.22.1 present.'
+} 'Install platforms/android-35 and cmake/3.22.1 with android sdk install.'
+Check 'Build-tools 36.0.0 and 36.1.0' {
+    foreach ($buildVersion in @('36.0.0','36.1.0')) {
+        foreach ($binary in @('aapt2.exe','d8.bat','zipalign.exe','apksigner.bat')) {
+            Assert-VaultPath "$sdk\build-tools\$buildVersion\$binary" | Out-Null
+        }
+    }
+    'Both default-runner and selected newer build-tools have the required binaries.'
+} 'Explicitly install build-tools/36.0.0 and build-tools/36.1.0 with android sdk install.'
+Check 'NDK 29.0.14206865' {
+    Assert-VaultPath "$sdk\ndk\29.0.14206865\toolchains\llvm\prebuilt\windows-x86_64\bin\clang.exe"
+} 'Install ndk;29.0.14206865.'
+Check 'Flutter default NDK 28.2.13676358' {
+    Assert-VaultPath "$sdk\ndk\28.2.13676358\toolchains\llvm\prebuilt\windows-x86_64\bin\clang.exe"
+} 'Run android sdk install --sdk=<sdk-path> ndk/28.2.13676358; Gradle auto-install is incompatible with the current CLI.'
+if (-not $SkipEmulator) {
+    Check 'Android emulator and hypervisor' {
+        Invoke-VaultNative "$sdk\emulator\emulator.exe" @('-accel-check')
+    } 'Enable WHPX/virtualization or use -SkipEmulator with a physical device.'
+    Check 'Android 36 system image' { Assert-VaultPath "$sdk\system-images\android-36\google_apis\x86_64\system.img" } 'Install Android 36 Google APIs x86_64 image.'
+    Check 'vault36 AVD' {
+        $avds = Invoke-VaultNative "$sdk\emulator\emulator.exe" @('-list-avds')
+        if ($avds -notmatch '(?m)^vault36\s*$') { throw 'vault36 AVD not defined.' }
+        'vault36'
+    } 'Create vault36 with avdmanager.'
 }
-exit $script:Fail
+Check 'Physical Android device' {
+    $devices = Invoke-VaultNative "$sdk\platform-tools\adb.exe" @('devices','-l')
+    $physical = $devices -split '\r?\n' | Where-Object { $_ -match '^\S+\s+device\b' -and $_ -notmatch '^emulator-' }
+    if (-not $physical) { throw 'No authorized physical device; hardware codec/background gates unverified.' }
+    $physical
+} 'Attach and authorize a real Android phone.' -Optional:(-not $RequirePhysicalAndroid)
+Check 'Go' { Invoke-VaultNative go @('version') } 'Install GoLang.Go.'
+Check 'Synthetic media fixture tools' {
+    $encoder = Invoke-VaultNative ffmpeg @('-version')
+    $inspector = Invoke-VaultNative ffprobe @('-version')
+    ($encoder -split '\r?\n')[0] + '; ' + ($inspector -split '\r?\n')[0]
+} 'Install Gyan.FFmpeg.Essentials; fixture generation only, not bundled with Vault.'
+Check 'clumsy and WinDivert files' {
+    foreach ($binary in @('clumsy.exe','WinDivert.dll','WinDivert64.sys')) {
+        Assert-VaultPath "$DevRoot\tools\clumsy\$binary" | Out-Null
+    }
+    'Executable/driver present; live shaping requires separate elevated validation.'
+} 'Extract official clumsy 0.3 win64 archive.'
+Check 'WSL2 and tc netem' {
+    $kernel = Invoke-VaultNative wsl @('-d','Ubuntu','--','uname','-r')
+    if ($kernel -notmatch 'WSL2') { throw "Ubuntu is not WSL2: $kernel" }
+    Invoke-VaultNative wsl @('-d','Ubuntu','--','bash','-lc','command -v tc >/dev/null && tc -V')
+} 'Install WSL2 Ubuntu and iproute2.'
+Check 'Workspace lockfile and Melos' {
+    $repoRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
+    Assert-VaultPath "$repoRoot\pubspec.lock" | Out-Null
+    Push-Location $repoRoot
+    try { Invoke-VaultNative dart @('run','melos','--version') } finally { Pop-Location }
+} 'Run dart pub get in the repository root.'
+
+$failures = @($results | Where-Object status -eq 'FAIL').Count
+$warnings = @($results | Where-Object status -eq 'WARN').Count
+$report = [pscustomobject]@{
+    checkedAt = (Get-Date).ToString('o'); hostName = $env:COMPUTERNAME
+    scope = 'Installed tools only; native smoke builds and Phase 0 gates are separate.'
+    failures = $failures; warnings = $warnings; checks = $results.ToArray()
+}
+if ($JsonOutput) { $report | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $JsonOutput -Encoding UTF8 }
+Write-Host "RESULT: $(if ($failures) { 'FAIL' } else { 'PASS' }) ($failures failures, $warnings warnings)"
+Write-Host 'Continue measured Phase 0 gates; installation checks do not establish product readiness.'
+exit ([int]($failures -gt 0))

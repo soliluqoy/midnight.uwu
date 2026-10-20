@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <meta name="description" content="Vault interactive interface study. Local-only design prototype, not a networked Vault application.">
+  <title>Vault — Interface study</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="styles.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <div class="study-bar"><span><span class="study-dot"></span> INTERFACE STUDY <span class="study-version">/ 01</span></span><span class="study-disclaimer">Sample content · simulated connections · no media shared</span><button type="button" data-action="scenario">Walkthrough controls <span aria-hidden="true">↗</span></button></div>
+  <div id="app"></div>
+  <dialog id="dialog" aria-labelledby="dialog-title"></dialog>
+  <div id="toast" role="status" aria-live="polite"></div>
+  <input id="file-picker" type="file" accept="image/*,video/*" multiple hidden>
+  <input id="folder-picker" type="file" accept="image/*,video/*" webkitdirectory multiple hidden>
+</body>
+</html>

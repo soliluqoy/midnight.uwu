@@ -1,0 +1,52 @@
+﻿{
+    "checkedAt":  "2026-10-18T19:57:36.5095848+08:00",
+    "scope":  "Synthetic direct WebRTC interop; not production authentication or media delivery",
+    "bytesPerDirection":  33554432,
+    "participants":  [
+                         {
+                             "androidNetworkMonitorDisabled":  false,
+                             "endpoint":  "http://127.0.0.1:48931",
+                             "platform":  "windows"
+                         },
+                         {
+                             "androidNetworkMonitorDisabled":  true,
+                             "endpoint":  "http://127.0.0.1:48932",
+                             "platform":  "android"
+                         }
+                     ],
+    "forward":  {
+                    "passed":  true,
+                    "bytes":  33554432,
+                    "sha256":  "6df86c2014e752807c6c6d8fc65b62f9e2eb3514773e1f6a15e919852a77193a",
+                    "milliseconds":  5395,
+                    "mibPerSecond":  5.9308914000035955,
+                    "highestNativeBufferedBytes":  522928,
+                    "nativeBufferPolls":  2053,
+                    "bufferLowCallbacks":  0,
+                    "maxMessageBytes":  16384,
+                    "path":  {
+                                 "verified":  true,
+                                 "localType":  "host",
+                                 "remoteType":  "host",
+                                 "currentRoundTripTime":  0.031
+                             }
+                },
+    "reverse":  {
+                    "passed":  true,
+                    "bytes":  33554432,
+                    "sha256":  "6df86c2014e752807c6c6d8fc65b62f9e2eb3514773e1f6a15e919852a77193a",
+                    "milliseconds":  5834,
+                    "mibPerSecond":  5.485065794221243,
+                    "highestNativeBufferedBytes":  523180,
+                    "nativeBufferPolls":  2077,
+                    "bufferLowCallbacks":  220,
+                    "maxMessageBytes":  16384,
+                    "path":  {
+                                 "verified":  true,
+                                 "localType":  "host",
+                                 "remoteType":  "host",
+                                 "currentRoundTripTime":  0.012
+                             }
+                },
+    "passed":  true
+}

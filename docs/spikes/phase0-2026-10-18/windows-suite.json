@@ -1,0 +1,141 @@
+﻿{
+    "checkedAt":  "2026-10-18T11:57:01.996656Z",
+    "platform":  "windows",
+    "scope":  "Native same-device transport and in-memory loopback range playback only",
+    "results":  {
+                    "loopback":  {
+                                     "passed":  true,
+                                     "scope":  "Same-device native WebRTC loopback, not LAN",
+                                     "forward":  {
+                                                     "passed":  true,
+                                                     "bytes":  16777216,
+                                                     "sha256":  "59884834c738a4356652892eb1ff5478d86974efd2e27f7ba827239bf90be25f",
+                                                     "milliseconds":  2554,
+                                                     "mibPerSecond":  6.263226172143206,
+                                                     "highestNativeBufferedBytes":  11744,
+                                                     "nativeBufferPolls":  1024,
+                                                     "bufferLowCallbacks":  0,
+                                                     "maxMessageBytes":  16384,
+                                                     "path":  {
+                                                                  "verified":  true,
+                                                                  "localType":  "host",
+                                                                  "remoteType":  "host",
+                                                                  "currentRoundTripTime":  0.0
+                                                              }
+                                                 },
+                                     "reverse":  {
+                                                     "passed":  true,
+                                                     "bytes":  16777216,
+                                                     "sha256":  "59884834c738a4356652892eb1ff5478d86974efd2e27f7ba827239bf90be25f",
+                                                     "milliseconds":  2396,
+                                                     "mibPerSecond":  6.676274939016402,
+                                                     "highestNativeBufferedBytes":  2464,
+                                                     "nativeBufferPolls":  1024,
+                                                     "bufferLowCallbacks":  0,
+                                                     "maxMessageBytes":  16384,
+                                                     "path":  {
+                                                                  "verified":  true,
+                                                                  "localType":  "host",
+                                                                  "remoteType":  "host",
+                                                                  "currentRoundTripTime":  0.0
+                                                              }
+                                                 }
+                                 },
+                    "vod":  {
+                                "passed":  true,
+                                "scope":  "Resident synthetic bytes via loopback HTTP; no P2P cache/seek latency claim",
+                                "samples":  [
+                                                {
+                                                    "fixture":  "front.mp4",
+                                                    "passed":  true,
+                                                    "startupMilliseconds":  1090,
+                                                    "seeks":  [
+                                                                  {
+                                                                      "targetSeconds":  8,
+                                                                      "resumeMilliseconds":  196
+                                                                  },
+                                                                  {
+                                                                      "targetSeconds":  2,
+                                                                      "resumeMilliseconds":  193
+                                                                  },
+                                                                  {
+                                                                      "targetSeconds":  10,
+                                                                      "resumeMilliseconds":  192
+                                                                  }
+                                                              ],
+                                                    "width":  1280,
+                                                    "height":  720,
+                                                    "durationMilliseconds":  12021,
+                                                    "audioSampleRate":  48000,
+                                                    "audioChannelCount":  2,
+                                                    "audibilityVerified":  false,
+                                                    "muted":  true,
+                                                    "errors":  [
+
+                                                               ],
+                                                    "rangeRequests":  [
+                                                                          {
+                                                                              "method":  "GET",
+                                                                              "range":  "bytes=0-",
+                                                                              "start":  0,
+                                                                              "end":  2377567,
+                                                                              "status":  206
+                                                                          }
+                                                                      ]
+                                                },
+                                                {
+                                                    "fixture":  "tail.mp4",
+                                                    "passed":  true,
+                                                    "startupMilliseconds":  741,
+                                                    "seeks":  [
+                                                                  {
+                                                                      "targetSeconds":  8,
+                                                                      "resumeMilliseconds":  193
+                                                                  },
+                                                                  {
+                                                                      "targetSeconds":  2,
+                                                                      "resumeMilliseconds":  193
+                                                                  },
+                                                                  {
+                                                                      "targetSeconds":  10,
+                                                                      "resumeMilliseconds":  193
+                                                                  }
+                                                              ],
+                                                    "width":  1280,
+                                                    "height":  720,
+                                                    "durationMilliseconds":  12021,
+                                                    "audioSampleRate":  48000,
+                                                    "audioChannelCount":  2,
+                                                    "audibilityVerified":  false,
+                                                    "muted":  true,
+                                                    "errors":  [
+
+                                                               ],
+                                                    "rangeRequests":  [
+                                                                          {
+                                                                              "method":  "GET",
+                                                                              "range":  "bytes=0-",
+                                                                              "start":  0,
+                                                                              "end":  2377567,
+                                                                              "status":  206
+                                                                          },
+                                                                          {
+                                                                              "method":  "GET",
+                                                                              "range":  "bytes=2363330-",
+                                                                              "start":  2363330,
+                                                                              "end":  2377567,
+                                                                              "status":  206
+                                                                          },
+                                                                          {
+                                                                              "method":  "GET",
+                                                                              "range":  "bytes=48-",
+                                                                              "start":  48,
+                                                                              "end":  2377567,
+                                                                              "status":  206
+                                                                          }
+                                                                      ]
+                                                }
+                                            ]
+                            }
+                }
+}

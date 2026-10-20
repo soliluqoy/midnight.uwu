@@ -1,0 +1,13 @@
+﻿{
+    "checkedAt":  "2026-10-18T19:13:01.5342964+08:00",
+    "scope":  "Empty Flutter template only; emulator not a performance or physical-device baseline",
+    "serial":  "emulator-5554",
+    "package":  "com.example.vault_toolchain_smoke",
+    "installed":  true,
+    "launched":  true,
+    "firstFrameVerified":  true,
+    "initialAmWaitStatus":  "timeout after 12118ms",
+    "eventualDrawnEvidence":  "I/ActivityTaskManager(  701): Fully drawn com.example.vault_toolchain_smoke/.MainActivity: +17s648ms",
+    "eventualDrawnMilliseconds":  17648,
+    "emulatorGpuMode":  "software"
+}

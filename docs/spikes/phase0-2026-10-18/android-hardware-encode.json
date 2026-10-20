@@ -1,0 +1,14 @@
+﻿{
+    "passed":  true,
+    "scope":  "Native MediaCodec synthetic constant frames only; not WebRTC file injection or sustained thermal proof",
+    "codec":  "c2.mtk.avc.encoder",
+    "hardwareAccelerated":  true,
+    "inputFrames":  150,
+    "outputFrames":  150,
+    "milliseconds":  5012.677461,
+    "framesPerSecond":  29.92412760785847,
+    "encodedBytes":  6523,
+    "requestedBitrate":  2500000,
+    "constantInputDoesNotValidateTargetBitrate":  true,
+    "outputFormat":  "{max-bitrate=3000000, crop-right=1279, latency=8, mime=video/avc, bitrate=3000000, priority=0, intra-refresh-period=0, color-standard=0, csd-1=java.nio.HeapByteBuffer[pos=0 lim=8 cap=8], color-transfer=0, crop-bottom=719, prepend-sps-pps-to-idr-frames=0, video-qp-average=0, crop-left=0, width=1280, input.time-stretch=1.0, bitrate-mode=1, color-range=0, crop-top=0, frame-rate=30, height=720, csd-0=java.nio.HeapByteBuffer[pos=0 lim=23 cap=23]}"
+}

@@ -1,0 +1,12 @@
+name: vault_media_index
+description: Durable SQLite indexed media sources and streaming content-addressed imports.
+version: 0.1.0
+publish_to: none
+resolution: workspace
+environment:
+  sdk: ^3.13.5
+dependencies:
+  crypto: 3.0.7
+  sqlite3: 3.7.1
+dev_dependencies:
+  test: ^1.25.0

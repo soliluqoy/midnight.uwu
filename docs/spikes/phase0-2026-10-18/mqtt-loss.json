@@ -1,0 +1,97 @@
+{
+  "scenario": "loss",
+  "checkedAt": "2026-10-18T14:03:15.827168Z",
+  "client": "mqtt5_client 5.1.0, TLS, MQTT 5, QoS 1",
+  "broker": "tools/mqtt_testbroker (mochi-mqtt v2.7.9, local)",
+  "outboundDropRate": 0.4,
+  "sends": [
+    {
+      "type": 2,
+      "acked": true,
+      "attempts": 4,
+      "ms": 3897
+    },
+    {
+      "type": 4,
+      "acked": true,
+      "attempts": 4,
+      "ms": 3589
+    },
+    {
+      "type": 4,
+      "acked": true,
+      "attempts": 1,
+      "ms": 28
+    },
+    {
+      "type": 4,
+      "acked": true,
+      "attempts": 3,
+      "ms": 1478
+    },
+    {
+      "type": 4,
+      "acked": true,
+      "attempts": 1,
+      "ms": 26
+    },
+    {
+      "type": 4,
+      "acked": true,
+      "attempts": 1,
+      "ms": 29
+    },
+    {
+      "type": 4,
+      "acked": true,
+      "attempts": 6,
+      "ms": 12235
+    },
+    {
+      "type": 4,
+      "acked": true,
+      "attempts": 1,
+      "ms": 27
+    },
+    {
+      "type": 4,
+      "acked": true,
+      "attempts": 5,
+      "ms": 7510
+    }
+  ],
+  "allAcked": true,
+  "totalMs": 28947,
+  "receivedOffer": 1,
+  "receivedCandidates": 8,
+  "candidatesExactlyOnce": true,
+  "bobDuplicatesReacked": 7,
+  "aliceStats": {
+    "connects": 1,
+    "connectFailures": 0,
+    "disconnects": 0,
+    "publishes": 17,
+    "publishSuppressed": 9,
+    "inboundFrames": 9,
+    "delivered": 0,
+    "duplicatesReacked": 0,
+    "droppedOversize": 0,
+    "droppedRateLimited": 0,
+    "rejected": {}
+  },
+  "bobStats": {
+    "connects": 1,
+    "connectFailures": 0,
+    "disconnects": 0,
+    "publishes": 9,
+    "publishSuppressed": 7,
+    "inboundFrames": 16,
+    "delivered": 9,
+    "duplicatesReacked": 7,
+    "droppedOversize": 0,
+    "droppedRateLimited": 0,
+    "rejected": {}
+  },
+  "passed": true,
+  "uncaughtClientErrors": []
+}

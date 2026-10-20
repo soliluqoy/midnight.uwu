@@ -1,0 +1,7 @@
+include: ../../analysis_options.yaml
+
+linter:
+  rules:
+    # Cache/download metadata can involve slow storage. Async IO is intentional;
+    # synchronous metadata probes must not block application/playback callbacks.
+    avoid_slow_async_io: false
