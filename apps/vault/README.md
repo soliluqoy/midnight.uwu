@@ -1,4 +1,4 @@
-# Vault Messenger native application
+# Midnight native application
 
 Experimental Android and Windows Flutter messenger with verified local contacts,
 authenticated direct text delivery and durable local history. Personal media
@@ -13,6 +13,27 @@ No physical-device, hostile-network, background availability or release-security
 gate is implied by an installable build. Keep both peer processes running.
 Explicit best-effort OS availability support is described below; it is not
 unattended hosting or a reachability guarantee. There is no push wakeup.
+
+## Release downloads
+
+The [Midnight website](https://soliluqoy.github.io/midnight.uwu/) links to the
+[experimental v0.3.0-preview.1 prerelease](https://github.com/soliluqoy/midnight.uwu/releases/tag/v0.3.0-preview.1)
+and its Windows x64 ZIP, Android ARM64/x64 APKs and `SHA256SUMS.txt`.
+These are not production releases. Windows is unsigned: extract **all** files
+before running `vault.exe`, keeping the DLLs and `data/` beside it.
+Windows may require the
+[Microsoft Visual C++ 2015–2022 Redistributable (x64)](https://aka.ms/vs/17/release/vc_redist.x64.exe),
+which is not bundled in the ZIP.
+The portable ZIP does not make OS-protected identity/app-data storage portable.
+Android requires API 24 or later and sideloading; release APKs use developer/debug
+signing. Choose ARM64 for compatible phones or x64 for compatible devices/emulators.
+
+Quit before updating and preserve app data and protected identities. Extract
+Windows updates into a fresh directory without deleting OS app data. Install
+Android updates over the existing app with compatible signing and a non-decreasing
+version code; never uninstall or clear data to bypass an install failure.
+See the [root packaging instructions](../../README.md#build-and-run) for the
+PowerShell command that packages existing build outputs without rebuilding.
 
 ## Interface
 
@@ -40,7 +61,7 @@ Windows. Both devices then add each other. The host dials after its person
 chooses **Add contact**, and the scanner waits for that connection until the
 code expires; see the
 [connection setup decision](../../docs/adr/0005-connection-setup-ux.md).
-When Vault ignores or cannot finish a connection, it names one of five problems
+When Midnight ignores or cannot finish a connection, it names one of five problems
 with its remedy in the conversation header, Contact details, Connection setup
 and the Chats list. The problems are a noncontact sender, a contact you
 disconnected, no answer in time, no direct route between the networks, and an
@@ -115,8 +136,8 @@ identity/storage boundary or networking capability is changed by the redesign.
    signaling or **Use my own broker**. Manual stays the default for new and
    existing configurations. The first-run Chats screen and Connection setup
    offer the internet preset as the primary button. The preset uses
-   `broker.emqx.io:8883`, a third-party public broker that Vault does not
-   operate and that has no availability guarantee; Vault switches to it only
+   `broker.emqx.io:8883`, a third-party public broker that Midnight does not
+   operate and that has no availability guarantee; Midnight switches to it only
    after you confirm. Pairing may move the scanner to the broker named in the
    code, after showing it. Export/import public configuration independently
    from contacts; disconnect before changing transport. No account, backend,
@@ -325,7 +346,7 @@ flutter build apk --debug --split-per-abi --target-platform 'android-arm64,andro
 flutter build windows --release --no-pub --target=lib/main.dart
 ```
 
-Package ID stays `dev.vault.vault`; launcher label is **Vault Messenger**. APKs are
+Package ID stays `dev.vault.vault`; launcher label is **Midnight**. APKs are
 in `build/app/outputs/flutter-apk/`; Windows executable is
 `build/windows/x64/runner/Release/vault.exe` with its sibling DLLs and `data/`.
 Builds intentionally use developer/debug signing, including release-mode APKs.

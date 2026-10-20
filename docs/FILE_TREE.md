@@ -13,6 +13,7 @@ The [build plan](../P2P_VIDEO_SHARE_BUILD_PLAN.md) is authoritative.
 | docs/UI_UX_BUILD_PLAN.md | Sourced design research, messenger-first navigation, consent, screen/state contracts and UI acceptance criteria |
 | docs/INTERFACE_REDESIGN_PLAN.md | Adopted Quietly personal redesign, primary-source/dating-app research, screen/recovery contracts and explicit remaining native/human acceptance gates |
 | design/vault/ | Runnable local browser interface study, bundled illustrative media and labeled peer-state simulations; not the Flutter app or Phase 0 evidence |
+| site/ | Static Midnight product site, preview downloads, install instructions and explicit privacy/reachability limits; deployed to GitHub Pages |
 | apps/vault/lib/main.dart, production/ | Awaited protected bootstrap, real services, three primary destinations and persistent/contextual task utilities |
 | apps/vault/lib/production/messenger_service.dart | Bounded durable SQLite conversations, persisted receive acknowledgements, peer/ID deduplication, unread state and explicit retry over authenticated sessions |
 | apps/vault/lib/production/connection_problem.dart | The closed connection-problem table, bounded ignored-attempt notices and their single remedies |
@@ -34,6 +35,7 @@ The [build plan](../P2P_VIDEO_SHARE_BUILD_PLAN.md) is authoritative.
 | tools/setup/test-verifier.ps1 | Regression assertions for false passes |
 | tools/setup/test-builds.ps1 | Isolated empty Flutter Android/Windows builds |
 | tools/setup/install-toolchain.ps1 | Fresh-machine installation and idempotent component detection |
+| tools/package-release.ps1 | Package existing native release builds into a Windows x64 ZIP and split Android APK downloads with SHA-256 checksums |
 | tools/setup/install-windows-atl.ps1 | Additive administrator-only ATL repair for protected Windows storage; no SDK reinstall or plaintext fallback |
 | tools/netem/clumsy-profile.ps1 | Scoped lag/drop launcher with dry-run, no fake NAT/bandwidth |
 | tools/netem/netem-wsl2.sh | Shape traffic that actually traverses the WSL harness interface |
@@ -58,6 +60,7 @@ The [build plan](../P2P_VIDEO_SHARE_BUILD_PLAN.md) is authoritative.
 | packages/vault_delivery/ | Consent-gated browse/manifests/fragments, immutable pending-request lifecycle snapshots, verified sparse cache, resumable downloads and revocation |
 | tools/verify-core.ps1 | Explicit per-package behavioral test targets, analysis and format checks |
 | .github/workflows/core.yml | Windows/Android developer-build CI and core behavioral checks; remote run evidence is separate |
+| .github/workflows/pages.yml | Deploy site/ to GitHub Pages on master website changes or manual dispatch |
 
 The legacy melos.yaml was removed; current Melos configuration is in pubspec.yaml.
 

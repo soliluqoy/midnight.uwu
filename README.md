@@ -25,6 +25,38 @@ Midnight was previously named Vault. Source paths, Dart package names, the Andro
 package ID (`dev.vault.vault`) and the Windows executable (`vault.exe`) retain that
 name; the app's visible name is Midnight.
 
+## Preview downloads
+
+Visit the [Midnight website](https://soliluqoy.github.io/midnight.uwu/) or the
+[experimental v0.3.0-preview.1 prerelease](https://github.com/soliluqoy/midnight.uwu/releases/tag/v0.3.0-preview.1).
+These are experimental, non-production builds:
+
+- [Windows x64 portable ZIP](https://github.com/soliluqoy/midnight.uwu/releases/download/v0.3.0-preview.1/midnight-windows-x64.zip):
+  **extract all files**, then run `vault.exe` alongside its DLLs and `data/`.
+  The executable is unsigned; Windows may show an unrecognized-publisher warning.
+  Windows may also require the
+  [Microsoft Visual C++ 2015–2022 Redistributable (x64)](https://aka.ms/vs/17/release/vc_redist.x64.exe);
+  the ZIP does not bundle that runtime.
+  Portable describes the distribution, not identity storage: app data remains in
+  the OS user profile, not beside the executable.
+- Android: [ARM64 APK](https://github.com/soliluqoy/midnight.uwu/releases/download/v0.3.0-preview.1/midnight-android-arm64.apk)
+  or [x64 APK](https://github.com/soliluqoy/midnight.uwu/releases/download/v0.3.0-preview.1/midnight-android-x64.apk)
+  (typically an emulator), Android 7.0/API 24 or newer. Sideload the APK appropriate
+  to your device, allowing installation from that source when Android asks.
+  Release-mode APKs use existing developer/debug signing, not production signing.
+- [SHA256SUMS.txt](https://github.com/soliluqoy/midnight.uwu/releases/download/v0.3.0-preview.1/SHA256SUMS.txt)
+  records SHA-256 hashes of the three assets. Compare downloaded files with
+  `Get-FileHash -Algorithm SHA256`; matching hashes do not establish publisher trust.
+
+For updates, quit the app first and preserve its existing app data and protected
+identity storage. Extract Windows updates to a fresh directory; do not delete the
+OS app-data directories. On Android, install over the existing app with compatible
+signing and a non-decreasing version code. Do not uninstall or clear data to bypass
+an update failure: this can lose the identity, contacts and history.
+Both peers must stay awake and directly reachable. There is no TURN relay,
+offline mailbox or push delivery; local history is unencrypted at rest and the
+optional third-party signaling broker can observe connection metadata.
+
 ## What it does
 
 - **Chats:** verified local contacts, single-use QR pairing, direct text delivery,
@@ -113,10 +145,25 @@ to resolve an Android version downgrade. Follow the
 [native build and install instructions](apps/vault/README.md#build-and-run),
 including the ATL repair and Android version-code guidance.
 
+After building both platforms, return to the repository root and package the
+existing outputs (no builds or network access are performed by this script):
+
+```powershell
+cd ../..
+powershell -NoProfile -ExecutionPolicy Bypass -File tools/package-release.ps1 -OutputDirectory "$env:TEMP/midnight-release-v0.3.0-preview.1"
+```
+
+The output directory must be outside the source repository. It receives
+`midnight-windows-x64.zip`, `midnight-android-arm64.apk`,
+`midnight-android-x64.apk` and `SHA256SUMS.txt`. The Windows archive contains
+the complete runtime bundle at its root, excluding stale `midnight.exe` and debug
+artifacts; original build outputs are unchanged.
+
 ## Connect two devices
 
-1. Keep both apps running. In **Chats**, choose **Pair a phone** on one device
-   and **Scan pairing code** on the other, or copy/paste the pairing code.
+1. Keep both apps running. In **Chats**, choose **Pair a phone** on Windows or
+   **Show pairing code** on Android. On the other device, scan the code on Android
+   or enter the copied code text on Windows.
    Confirm the peer fingerprints; a display name alone proves nothing.
 2. Choose connection setup explicitly. The confirmed internet preset exchanges
    signaling through the public broker; Manual mode requires exchanging every
