@@ -1,4 +1,6 @@
-# Vault Messenger
+# Midnight
+
+![Midnight wordmark with crescent moon and star](design/brand/midnight/lockup.svg)
 
 A direct one-to-one messenger for Android and Windows with protected local
 identities, verified contacts and durable local conversation history. Text travels
@@ -14,103 +16,170 @@ approval and direct delivery. An owner must be awake and publishing to serve
 uncached files. Revocation stops future media delivery; received copies cannot
 be recalled. Public discovery remains a separate best-effort opt-in.
 
-The authoritative [build plan](P2P_VIDEO_SHARE_BUILD_PLAN.md) was reviewed on
-2026-10-18. Read the [audit report](reports/Vault%20prebuild%20architecture%20audit.md)
-and [baseline decision](docs/adr/0001-prebuild-baseline.md) before implementation.
+**Experimental software, not a production release.** Native builds and initial
+runtime checks do not establish general internet reachability, reliable background
+availability, independent cryptographic review or release readiness. The broader
+physical-device, NAT/firewall, lifecycle, security and performance gates remain open.
 
-The companion [UI/UX build plan](docs/UI_UX_BUILD_PLAN.md) adapts selected Manyverse
-patterns for Vault's navigation, consent, availability and media flows. The
-[interface-first sequencing revision](P2P_VIDEO_SHARE_BUILD_PLAN.md#62-interface-first-sequencing-revision)
-produced the native UI. The authorized
-[implementation-first revision](P2P_VIDEO_SHARE_BUILD_PLAN.md#63-implementation-first-sequencing-revision)
-now permits real core services before the full feasibility matrix is complete.
+Midnight was previously named Vault. Source paths, Dart package names, the Android
+package ID (`dev.vault.vault`) and the Windows executable (`vault.exe`) retain that
+name; the app's visible name is Midnight.
 
-## Current status
+## What it does
 
-Phase 0 is underway. The [native probe](spikes/phase0_probe/README.md) and
-[Go/Pion harness](tools/interop_harness/README.md) now run. Initial physical-phone
-and Windows results, fixes and remaining gates are in the
-[Phase 0 record](docs/spikes/phase0-2026-10-18/README.md).
-The [native app](apps/vault/README.md) implements the approved
-[Quietly personal redesign](docs/INTERFACE_REDESIGN_PLAN.md): **Chats, Libraries,
-My library**, with persistent Requests & transfers, Identity & Settings and
-contextual Connection setup. Compact task routes become a rail/sidebar and
-master/detail workspace as space permits. Drafts, editing selection and timeline
-position survive navigation and resize. The interface uses real experimental
-services: durable conversations and recipient-save acknowledgements, protected
-local identities, signed/encrypted Manual and MQTT signaling, a confirmed
-one-tap public broker preset, QR pairing, named connection problems,
-authenticated direct WebRTC, persisted media approval/revocation, SQLite indexing, bounded range
-playback and resumable downloads. Folder references and imported copies remain
-distinct; publication and public discovery are separate opt-ins.
+- **Chats:** verified local contacts, single-use QR pairing, direct text delivery,
+  recipient-save acknowledgements and persistent conversation history.
+- **Libraries:** browse approved peers' photos and videos, view images, seek video,
+  resume interrupted downloads and explicitly save copies outside the app cache.
+- **My library:** reference selected folders or import copies, then explicitly
+  start sharing and approve library access. Publication, approval and public
+  discovery are separate decisions.
+- **Adaptive native interface:** compact task routes, rail/sidebar navigation,
+  large-text layouts and retained drafts and conversation position.
 
-The [implementation-first revision](P2P_VIDEO_SHARE_BUILD_PLAN.md#63-implementation-first-sequencing-revision)
-authorizes this work before comprehensive Phase 0 acceptance trials. Those trials
-are deferred, not passed; basic runtime and security checks remain required.
-See the [app instructions](apps/vault/README.md) for the current supported surface
-and exercised verification. The external empty toolchain smoke project is not Vault.
+See the [native app guide](apps/vault/README.md) for the full workflow, storage
+boundaries, platform behavior and recorded verification.
 
-Android developer packages build for ARM64 and x86-64. Windows packaging requires
-MSVC ATL for protected storage; see the narrow installer and current build
-evidence in the app README. An old preview executable is not a verified core build.
+## Privacy and connection limits
 
-## Reproduce the preflight
+- No accounts, operated backend, bundled API keys, telemetry, crash reporting or
+  remote configuration services.
+- Identity keys use OS-protected storage. Local chat history is **not encrypted
+  at rest**. Identity loss has no automatic recovery.
+- Chat text, acknowledgements and media use authenticated direct WebRTC sessions.
+  No TURN or relay fallback: some network pairs cannot connect.
+- Manual signaling is the default. The optional internet preset uses
+  `broker.emqx.io:8883`, a third-party public MQTT broker, only after confirmation.
+  You can also configure your own compatible broker.
+- MQTT carries encrypted connection signaling and separately opted-in public
+  listings, never chat text or media. A broker can observe connection metadata;
+  it has no availability guarantee.
+- Android publishing uses a visible foreground service; Windows offers explicit
+  tray and sleep-prevention controls. Neither guarantees unattended availability.
+- Library approval covers browse/play/download of the selected library, including
+  future imports and source refreshes, for the grant's lifetime. Revocation cannot
+  erase received or exported copies.
 
-Run from this repository in PowerShell; installation verification needs no elevation:
+## Build and run
 
-~~~powershell
+Development targets **Android and Windows** with Flutter/Dart. The workspace
+requires Dart `>=3.13.0 <4.0.0`; see the [toolchain record](docs/ops/ENVIRONMENT.md)
+and [dependency notes](docs/ops/DEPENDENCIES.md) for the recorded environment.
+Windows builds require Visual Studio C++ tools, the Windows SDK and **v143 ATL**;
+Android builds require the Android SDK and the app's configured NDK.
+
+Run from PowerShell:
+
+```powershell
+git clone https://github.com/soliluqoy/midnight.uwu.git
+cd midnight.uwu
 flutter pub get
 dart run melos bootstrap
+powershell -NoProfile -ExecutionPolicy Bypass -File tools/setup/verify-toolchain.ps1
+```
+
+Melos `8.9.0` is pinned locally in `pubspec.yaml`; use `dart run melos`, not a global
+runner. The app and all nine library packages share the committed `pubspec.lock`.
+For a fresh machine, consult the [setup instructions](docs/ops/ENVIRONMENT.md)
+before installing tools. Do not reinstall a working toolchain.
+
+If Windows plugin symlink privileges block setup after dependency resolution,
+use the existing project-local workaround:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File apps/vault/tool/prepare-windows-links.ps1
+```
+
+Build the real application, not the isolated empty toolchain smoke project:
+
+```powershell
+cd apps/vault
+flutter build windows --release --no-pub --target=lib/main.dart
+flutter build apk --release --split-per-abi --target-platform 'android-arm64,android-x64' --no-pub --target=lib/main.dart
+```
+
+Run Windows with the executable and its sibling DLLs and `data/` directory intact:
+
+```powershell
+& .\build\windows\x64\runner\Release\vault.exe
+```
+
+Android APKs are written to `apps/vault/build/app/outputs/flutter-apk/`, relative to
+the repository root. They use developer/debug signing, **including release-mode
+APKs**, not production signing.
+
+**Preserve existing identities when updating.** Never uninstall or clear app data
+to resolve an Android version downgrade. Follow the
+[native build and install instructions](apps/vault/README.md#build-and-run),
+including the ATL repair and Android version-code guidance.
+
+## Connect two devices
+
+1. Keep both apps running. In **Chats**, choose **Pair a phone** on one device
+   and **Scan pairing code** on the other, or copy/paste the pairing code.
+   Confirm the peer fingerprints; a display name alone proves nothing.
+2. Choose connection setup explicitly. The confirmed internet preset exchanges
+   signaling through the public broker; Manual mode requires exchanging every
+   queued frame and its replies within the retry deadlines.
+3. Open the contact and choose **Connect**, then send text once authenticated.
+   **Delivered** means the recipient app saved it. **Unconfirmed** may mean it
+   arrived; explicit Retry reuses the message ID to avoid duplicate received copies.
+4. To share media, add sources in **My library**, choose **Start sharing**, and
+   approve the other person's access request. Adding a contact alone grants no
+   library access.
+
+See the [detailed workflow](apps/vault/README.md#real-core-workflow) for pairing,
+manual signaling, permissions, downloads and revocation.
+
+## Development checks
+
+Run from the repository root after resolving dependencies:
+
+```powershell
 dart run melos run analyze
-powershell -NoProfile -ExecutionPolicy Bypass -File tools\setup\test-verifier.ps1
-powershell -NoProfile -ExecutionPolicy Bypass -File tools\setup\verify-toolchain.ps1
-~~~
+dart run melos run format
+powershell -NoProfile -ExecutionPolicy Bypass -File tools/verify-core.ps1
+```
 
-Melos 8.9.0 is a pinned local dependency, with configuration in pubspec.yaml.
-Commit pubspec.lock. The app and all nine packages are explicitly registered in
-the workspace with `resolution: workspace`. If Windows plugin symlink privileges block
-setup, follow the app-local junction preparation in the
-[native build instructions](apps/vault/README.md#build-and-run); do not reinstall
-the toolchain or change machine policy.
+For setup/verifier changes, also run:
 
-Run package behavioral checks after resolving dependencies:
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File tools/setup/test-verifier.ps1
+```
 
-~~~powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File tools\verify-core.ps1
-~~~
+The core verifier covers the production workspace. Separate transport probes
+and the interop harness have their own README commands. Empty-template builds,
+automated checks and synthetic probes do not close product feasibility gates.
 
-To build an isolated empty template for BOTH Android and Windows:
+## Repository map
 
-~~~powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File tools\setup\test-builds.ps1
-~~~
+| Path | Purpose |
+|---|---|
+| [`apps/vault/`](apps/vault/README.md) | Native Flutter app for Android and Windows |
+| `packages/vault_*` | Nine shared packages: identity, protocol, signaling, networking, directory, media indexing, delivery, playback and UI |
+| [`design/brand/midnight/`](design/brand/midnight/README.md) | Midnight artwork and icon generation |
+| [`design/vault/`](design/vault/README.md) | Browser interface study with simulated peer state; not the native runtime |
+| [`spikes/phase0_probe/`](spikes/phase0_probe/README.md) | Native transport, playback and lifecycle probes |
+| [`tools/interop_harness/`](tools/interop_harness/README.md) | Go/Pion interoperability harness |
+| [`docs/FILE_TREE.md`](docs/FILE_TREE.md) | Implemented components versus planned work |
 
-To run that template after building:
+Identity and protocol remain pure Dart. The native WebRTC boundary is
+`packages/vault_net/lib/src/webrtc_adapter.dart`. MQTT handles signaling and
+opt-in public discovery; media delivery stays direct.
 
-~~~powershell
-cd C:\dev\vault-toolchain-smoke
-flutter run -d windows
-flutter devices
-flutter run -d <authorized-android-device-id>
-~~~
+## Plans and evidence
 
-These commands do not run Vault or prove WebRTC/player plugin compatibility.
-See [environment evidence](docs/ops/ENVIRONMENT.md) and
-[dependency decisions](docs/ops/DEPENDENCIES.md). For a fresh machine,
-tools/setup/install-toolchain.ps1 installs prerequisites with Administrator rights;
-existing installations should use verification rather than reinstalling.
+The [product and build plan](P2P_VIDEO_SHARE_BUILD_PLAN.md) is authoritative.
+Its [implementation-first revision](P2P_VIDEO_SHARE_BUILD_PLAN.md#63-implementation-first-sequencing-revision)
+permits real core implementation before the full Phase 0 matrix is complete;
+it does **not** pass those gates.
 
-## Architecture
+- [Architecture audit](reports/Vault%20prebuild%20architecture%20audit.md) and
+  [baseline decision](docs/adr/0001-prebuild-baseline.md).
+- [UI/UX plan](docs/UI_UX_BUILD_PLAN.md) and
+  [Quietly personal interface redesign](docs/INTERFACE_REDESIGN_PLAN.md).
+- [Initial Phase 0 observations](docs/spikes/phase0-2026-10-18/README.md).
+- [Native app verification record](apps/vault/README.md#verification).
 
-`apps/vault` composes nine package boundaries: identity, protocol, signaling,
-networking, directory, media indexing, delivery, playback and shared UI.
-Identity/protocol remain pure Dart. Only `vault_net/src/webrtc_adapter.dart`
-imports the native WebRTC plugin. Text, acknowledgements and media use
-authenticated direct sessions; MQTT carries bounded signaling and explicitly
-public discovery metadata only. Protected secrets use OS storage; conversation
-history and library/source state use local SQLite.
-
-Continue Phase 1 core integration under the recorded sequencing override.
-Outstanding Phase 0 NAT/firewall, physical Android availability, shaped-link,
-security and performance gates remain required before release-readiness claims.
-Native builds and local-file playback do not satisfy those gates.
+Physical-device, hostile-network, background lifecycle, security and performance
+acceptance remain separate from implementation and developer-build evidence.
